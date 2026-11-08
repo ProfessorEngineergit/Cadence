@@ -74,7 +74,9 @@ fun WeekAvailabilityEditor(availability: List<List<TimeSlot>>, onChange: (List<L
 
 @Composable
 fun SlotDialog(title: String, initial: TimeSlot, existing: Boolean, onDismiss: () -> Unit, onSave: (TimeSlot) -> Unit, onDelete: () -> Unit) {
-    val context = LocalContext.current
+    val pickers = LocalPickers.current
+    val fromTitle = words("Von", "From")
+    val untilTitle = words("Bis", "Until")
     var start by remember { mutableIntStateOf(initial.start) }
     var end by remember { mutableIntStateOf(initial.end) }
     val valid = end - start >= 10
@@ -83,30 +85,34 @@ fun SlotDialog(title: String, initial: TimeSlot, existing: Boolean, onDismiss: (
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(words("Wann hast du an diesem Tag Zeit zum Üben?", "When do you have time to practise on this day?"), style = MaterialTheme.typography.bodyMedium)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { pickTime(context, start) { start = it } }, modifier = Modifier.weight(1f)) { Text(clock(start), style = MaterialTheme.typography.titleLarge) }
+                    OutlinedButton(onClick = { pickers.time(start, fromTitle) { start = it } }, modifier = Modifier.weight(1f)) { Text(clock(start), style = MaterialTheme.typography.titleLarge) }
                     Text(words("bis", "to"))
-                    OutlinedButton(onClick = { pickTime(context, end) { end = if (it == 0) 1440 else it } }, modifier = Modifier.weight(1f)) { Text(clock(end), style = MaterialTheme.typography.titleLarge) }
+                    OutlinedButton(onClick = { pickers.time(end, untilTitle) { end = if (it == 0) 1440 else it } }, modifier = Modifier.weight(1f)) { Text(clock(end), style = MaterialTheme.typography.titleLarge) }
                 }
-                if (!valid) Text(words("Das Ende muss mindestens 10 Minuten nach dem Beginn liegen.", "The end must be at least 10 minutes after the start."), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                else Text(minutesText(end - start), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (!valid) Text(words("Das Ende muss mindestens 10 Minuten nach dem Beginn liegen.", "The end must be at least 10 minutes after the start."), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    else Text(minutesText(end - start), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                    if (existing) TextButton(onClick = onDelete, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
+                        Icon(Icons.Rounded.DeleteOutline, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text(words("Löschen", "Delete"))
+                    }
+                }
             }
         },
         confirmButton = { TextButton(onClick = { onSave(TimeSlot(start, end)) }, enabled = valid) { Text(words("Übernehmen", "Apply")) } },
-        dismissButton = {
-            Row {
-                if (existing) TextButton(onClick = onDelete, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text(words("Löschen", "Delete")) }
-                TextButton(onClick = onDismiss) { Text(words("Abbrechen", "Cancel")) }
-            }
-        })
+        dismissButton = { TextButton(onClick = onDismiss) { Text(words("Abbrechen", "Cancel")) } })
 }
 
 /** Quick starting points for the week. */
 @Composable
 fun AvailabilityPresets(onPick: (List<List<TimeSlot>>) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        SuggestionChip(onClick = { onPick(List(7) { if (it < 5) listOf(TimeSlot(17 * 60, 18 * 60)) else listOf(TimeSlot(15 * 60, 16 * 60)) }) },
-            label = { Text(words("Abends, Wochenende nachmittags", "Evenings, weekend afternoons")) })
-        SuggestionChip(onClick = { onPick(List(7) { listOf(TimeSlot(7 * 60, 7 * 60 + 30)) }) }, label = { Text(words("Jeden Morgen 30 Min.", "Every morning 30 min")) })
-        SuggestionChip(onClick = { onPick(List(7) { emptyList() }) }, label = { Text(words("Leer anfangen", "Start empty")) })
+    val presets = listOf(
+        words("Abends, Wochenende nachmittags", "Evenings, weekend afternoons") to List(7) { if (it < 5) listOf(TimeSlot(17 * 60, 18 * 60)) else listOf(TimeSlot(15 * 60, 16 * 60)) },
+        words("Jeden Morgen 30 Min.", "Every morning 30 min") to List(7) { listOf(TimeSlot(7 * 60, 7 * 60 + 30)) },
+        words("Leer anfangen", "Start empty") to List(7) { emptyList<TimeSlot>() },
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        presets.forEach { (label, value) ->
+            SuggestionChip(onClick = { onPick(value) }, label = { Text(label, maxLines = 1) }, modifier = Modifier.fillMaxWidth())
+        }
     }
 }

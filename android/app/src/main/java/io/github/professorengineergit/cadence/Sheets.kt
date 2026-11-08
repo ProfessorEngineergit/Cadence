@@ -76,7 +76,7 @@ fun SheetColumn(onDismiss: () -> Unit, content: @Composable ColumnScope.() -> Un
             }
         }
     }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, modifier = dragModifier, sheetGesturesEnabled = false,
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, modifier = Modifier.statusBarsPadding().padding(top = 8.dp).then(dragModifier), sheetGesturesEnabled = false,
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         dragHandle = { Box(Modifier.padding(top = 14.dp, bottom = 18.dp).size(width = 44.dp, height = 5.dp).background(MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))) },
         containerColor = MaterialTheme.colorScheme.surface, contentWindowInsets = { WindowInsets.navigationBars }) {
@@ -101,18 +101,15 @@ fun FocusSheet(state: CadenceState, onDismiss: () -> Unit, onSave: (String, Int)
         SheetHeading(words("Woran arbeitest du?", "What are you working on?"), words("Ein konkreter Fokus macht den Anfang leichter. Er steht später auch im Verlauf.", "A concrete focus makes it easier to start. It also shows up in your history."))
         OutlinedTextField(value = focus, onValueChange = { focus = it.take(60) }, label = { Text(words("Fokus", "Focus")) }, singleLine = true,
             modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            when (state.activeGoal.kind) {
-                GoalKind.MUSIC -> listOf(words("Freies Üben", "Free practice"), words("Technik", "Technique"), words("Neues Stück", "New piece"), words("Repertoire", "Repertoire"))
-                GoalKind.SPEECH -> listOf(words("Durchsprechen", "Run-through"), words("Einstieg", "Opening"), words("Folien", "Slides"), words("Mit Stoppuhr", "Timed run"))
-                GoalKind.STUDY -> listOf(words("Wiederholen", "Review"), words("Aufgaben", "Exercises"), words("Karteikarten", "Flashcards"), words("Probeklausur", "Practice exam"))
-                GoalKind.OTHER -> listOf(words("Freies Üben", "Free practice"), words("Grundlagen", "Basics"), words("Projekt", "Project"))
-            }.forEach { title -> SuggestionChip(onClick = { focus = title }, label = { Text(title) }) }
+        val suggestions = when (state.activeGoal.kind) {
+            GoalKind.MUSIC -> listOf(words("Freies Üben", "Free practice"), words("Technik", "Technique"), words("Neues Stück", "New piece"), words("Repertoire", "Repertoire"))
+            GoalKind.SPEECH -> listOf(words("Durchsprechen", "Run-through"), words("Einstieg", "Opening"), words("Folien", "Slides"), words("Mit Stoppuhr", "Timed run"))
+            GoalKind.STUDY -> listOf(words("Wiederholen", "Review"), words("Aufgaben", "Exercises"), words("Karteikarten", "Flashcards"), words("Probeklausur", "Practice exam"))
+            GoalKind.OTHER -> listOf(words("Freies Üben", "Free practice"), words("Grundlagen", "Basics"), words("Projekt", "Project"), words("Wiederholen", "Review"))
         }
+        PillGrid(suggestions, { it == focus }, columns = 2, onPick = { focus = it }) { Text(it, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
         Text(words("Timer-Ziel, wenn heute nichts mehr ansteht", "Timer goal when nothing is left for today"), style = MaterialTheme.typography.titleMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(15, 25, 45).forEach { value -> FilterChip(selected = minutes == value, onClick = { minutes = value }, label = { Text(words("$value Min.", "$value min")) }) }
-        }
+        PillGrid(listOf(15, 25, 45), { it == minutes }, onPick = { minutes = it }) { Text(minutesText(it), maxLines = 1) }
         Text(words("Sonst richtet sich der Timer nach deinem Tagesziel. Er läuft weiter, bis du auf Fertig tippst.", "Otherwise the timer follows today's goal. It keeps running until you tap Done."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Button(onClick = { onSave(focus, minutes) }, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text(words("Übernehmen", "Apply")) }
     }
@@ -150,9 +147,7 @@ fun SessionSheet(existing: PracticeSession?, initialDate: LocalDate, state: Cade
             OutlinedTextField(value = seconds, onValueChange = { if (it.length <= 2 && it.all(Char::isDigit)) seconds = it }, label = { Text(words("Sekunden", "Seconds")) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), isError = s == null || s !in 0..59)
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(10, 15, 20, 30, 45, 60).forEach { value -> SuggestionChip(onClick = { minutes = value.toString(); seconds = "0" }, label = { Text(words("$value Min.", "$value min")) }) }
-        }
+        PillGrid(listOf(10, 15, 20, 30, 45, 60), { m == it.toLong() && s == 0L }, onPick = { minutes = it.toString(); seconds = "0" }) { Text(minutesText(it), maxLines = 1) }
         OutlinedTextField(value = focus, onValueChange = { focus = it.take(60) }, label = { Text(words("Fokus", "Focus")) }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
         OutlinedTextField(value = note, onValueChange = { note = it.take(500) }, label = { Text(words("Notiz (optional)", "Note (optional)")) }, placeholder = { Text(words("Was lief gut? Woran willst du als Nächstes arbeiten?", "What went well? What's next?")) },
             minLines = 2, maxLines = 4, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))

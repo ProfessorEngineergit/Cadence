@@ -314,10 +314,13 @@ class PracticeViewModel(application: Application) : AndroidViewModel(application
         require(availability.size == 7)
         update(state.copy(availability = availability.map { day -> day.filter { it.minutes > 0 }.sortedBy { it.start } }))
     }
-    fun finishOnboarding(goal: PracticeGoal, availability: List<List<TimeSlot>>, reminders: Boolean) {
-        val exists = state.practiceGoals.any { it.id == goal.id }
-        update(state.copy(practiceGoals = if (exists) state.practiceGoals.map { if (it.id == goal.id) goal else it } else state.practiceGoals + goal,
-            activeGoalId = goal.id, availability = availability, onboarded = true, reminders = state.reminders.copy(enabled = reminders)))
+    /** Saves the goals from setup: existing ones are replaced by id, new ones appended. The first becomes active. */
+    fun finishOnboarding(goals: List<PracticeGoal>, availability: List<List<TimeSlot>>, reminders: Boolean) {
+        require(goals.isNotEmpty())
+        val ids = goals.map { it.id }.toSet()
+        val merged = state.practiceGoals.map { old -> goals.firstOrNull { it.id == old.id } ?: old } + goals.filter { g -> state.practiceGoals.none { it.id == g.id } }
+        update(state.copy(practiceGoals = merged.filter { it.title.isNotBlank() || it.id !in ids }, activeGoalId = goals.first().id, availability = availability, onboarded = true,
+            reminders = state.reminders.copy(enabled = reminders)))
     }
     fun replayOnboarding() { update(state.copy(onboarded = false)) }
     fun setCompletionSound(enabled: Boolean) { update(state.copy(completionSound = enabled)) }

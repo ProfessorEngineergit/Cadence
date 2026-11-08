@@ -99,7 +99,7 @@ fun SettingsScreen(state: CadenceState, model: PracticeViewModel) {
             }
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(words("Höchstens pro Tag", "At most per day"), style = MaterialTheme.typography.titleMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { (1..3).forEach { n -> FilterChip(selected = reminders.dailyLimit == n, onClick = { model.setReminders(reminders.copy(dailyLimit = n)) }, label = { Text("$n") }) } }
+                SegmentedChoice(listOf("1", "2", "3"), reminders.dailyLimit - 1) { model.setReminders(reminders.copy(dailyLimit = it + 1)) }
                 Text(words("Nach dem Üben ist eine Stunde Ruhe. Reagierst du drei Tage lang nicht, kommt nur noch eine Erinnerung pro Tag, bis du wieder übst.",
                     "After practice there's an hour of quiet. If you don't react for three days, you only get one reminder a day until you practise again."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

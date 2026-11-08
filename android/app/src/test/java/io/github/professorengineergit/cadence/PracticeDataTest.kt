@@ -105,6 +105,24 @@ class PracticeDataTest {
         assertEquals(30, p.todayTarget)
     }
 
+    @Test fun goalCreatedMidWeekOnlyAsksForTheRemainingShare() {
+        // Created on Friday: Fri-Sun are 3 of 7 equal days, so 70 minutes become 30.
+        val p = plan(state(weekly(70).copy(createdOn = monday.plusDays(4).toString())), at(monday.plusDays(4), 9))
+        assertEquals(30, p.target)
+        assertFalse(p.days.first().inPeriod)
+        assertEquals(10, p.todayTarget)
+    }
+
+    @Test fun goalStartingTomorrowIsPlannedFromItsFirstWeekAndRestsToday() {
+        val sunday = monday.plusDays(6)
+        val p = plan(state(weekly(70).copy(createdOn = monday.plusDays(7).toString())), at(sunday, 23))
+        assertEquals(DayStatus.REST, p.status)
+        assertEquals(70, p.target)
+        assertEquals(monday.plusDays(7), p.days.first().date)
+        assertEquals(Planner.freshStart(everyDay, at(sunday, 23)), monday.plusDays(7))
+        assertEquals(sunday, Planner.freshStart(everyDay, at(sunday, 9)))
+    }
+
     @Test fun goalReachedAndExpiredDeadlinesAreDetected() {
         assertEquals(DayStatus.GOAL_REACHED, plan(state(sessions = listOf(session(monday, 70))), at(monday.plusDays(1), 9)).status)
         val talk = PracticeGoal("t", "T", type = GoalType.DEADLINE, minutes = 30, deadline = monday.toString(), createdOn = "2026-10-20")

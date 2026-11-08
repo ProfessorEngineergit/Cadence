@@ -13,6 +13,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 
 private val LightColors = lightColorScheme(
     primary = Color(0xFFA83D2C), onPrimary = Color.White,
@@ -58,16 +59,16 @@ fun CadenceTheme(state: CadenceState, content: @Composable () -> Unit) {
         colorScheme = colors,
         motionScheme = MotionScheme.expressive(),
         shapes = Shapes(
-            extraSmall = RoundedCornerShape(8), small = RoundedCornerShape(16),
-            medium = RoundedCornerShape(20), large = RoundedCornerShape(28), extraLarge = RoundedCornerShape(36),
+            extraSmall = RoundedCornerShape(8.dp), small = RoundedCornerShape(12.dp),
+            medium = RoundedCornerShape(16.dp), large = RoundedCornerShape(24.dp), extraLarge = RoundedCornerShape(32.dp),
         ),
         typography = Typography(
-            displayLarge = base.copy(fontSize = 62.sp, lineHeight = 70.sp, fontWeight = FontWeight.Medium, letterSpacing = (-3).sp, fontFeatureSettings = "tnum"),
-            displayMedium = base.copy(fontSize = 48.sp, lineHeight = 54.sp, fontWeight = FontWeight.Medium, letterSpacing = (-2).sp),
-            headlineLarge = base.copy(fontSize = 34.sp, lineHeight = 39.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-1.3).sp),
-            headlineMedium = base.copy(fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.7).sp),
-            headlineSmall = base.copy(fontSize = 24.sp, lineHeight = 30.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp),
-            titleLarge = base.copy(fontSize = 21.sp, lineHeight = 27.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.3).sp),
+            displayLarge = base.copy(fontSize = 62.sp, lineHeight = 70.sp, fontWeight = FontWeight.Medium, fontFeatureSettings = "tnum"),
+            displayMedium = base.copy(fontSize = 48.sp, lineHeight = 54.sp, fontWeight = FontWeight.Medium),
+            headlineLarge = base.copy(fontSize = 34.sp, lineHeight = 39.sp, fontWeight = FontWeight.SemiBold),
+            headlineMedium = base.copy(fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.SemiBold),
+            headlineSmall = base.copy(fontSize = 24.sp, lineHeight = 30.sp, fontWeight = FontWeight.SemiBold),
+            titleLarge = base.copy(fontSize = 21.sp, lineHeight = 27.sp, fontWeight = FontWeight.SemiBold),
             titleMedium = base.copy(fontSize = 16.sp, lineHeight = 23.sp, fontWeight = FontWeight.SemiBold),
             bodyLarge = base.copy(fontSize = 16.sp, lineHeight = 24.sp),
             bodyMedium = base.copy(fontSize = 14.sp, lineHeight = 21.sp),

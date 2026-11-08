@@ -37,7 +37,7 @@ fun CadenceFeedback(enabled: Boolean, content: @Composable () -> Unit) {
     val feedback = remember(enabled, system) { object : HapticFeedback {
         override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) { if (enabled) system.performHapticFeedback(hapticFeedbackType) }
     } }
-    CompositionLocalProvider(LocalHapticsEnabled provides enabled, LocalHapticFeedback provides feedback, content = content)
+    CompositionLocalProvider(LocalHapticsEnabled provides enabled, LocalHapticFeedback provides feedback) { PickerHost(content) }
 }
 
 @Composable
@@ -118,6 +118,19 @@ fun SuggestionChip(onClick: () -> Unit, label: @Composable () -> Unit, modifier:
 fun SegmentedChoice(options: List<String>, selected: Int, modifier: Modifier = Modifier.fillMaxWidth(), onSelect: (Int) -> Unit) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEachIndexed { i, label -> Pill(selected == i, { onSelect(i) }, Modifier.weight(1f), compact = true) { Text(label, maxLines = 1) } }
+    }
+}
+
+/** Options as a grid of equal-width pills that line up with both margins. */
+@Composable
+fun <T> PillGrid(items: List<T>, isSelected: (T) -> Boolean, columns: Int = 3, onPick: (T) -> Unit, label: @Composable RowScope.(T) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items.chunked(columns).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { item -> Pill(isSelected(item), { onPick(item) }, Modifier.weight(1f), compact = true) { label(item) } }
+                repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
     }
 }
 

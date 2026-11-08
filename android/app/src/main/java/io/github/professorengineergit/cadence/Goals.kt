@@ -46,7 +46,7 @@ fun goalIcon(kind: GoalKind): ImageVector = when (kind) {
     val h = minutes / 60
     val m = minutes % 60
     return when {
-        minutes <= 180 -> if (en) "$minutes min" else "$minutes Min."
+        minutes <= 300 -> if (en) "$minutes min" else "$minutes Min."
         m == 0 -> if (en) "$h h" else "$h Std."
         else -> if (en) "$h h $m min" else "$h Std. $m Min."
     }
@@ -77,11 +77,8 @@ fun goalIcon(kind: GoalKind): ImageVector = when (kind) {
 }
 
 @Composable fun KindChips(selected: GoalKind, onSelect: (GoalKind) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        GoalKind.entries.forEach { kind ->
-            FilterChip(selected = selected == kind, onClick = { onSelect(kind) }, label = { Text(kindLabel(kind)) },
-                leadingIcon = { Icon(goalIcon(kind), null, Modifier.size(18.dp)) })
-        }
+    PillGrid(GoalKind.entries, { it == selected }, columns = 2, onPick = onSelect) { kind ->
+        Icon(goalIcon(kind), null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(kindLabel(kind), maxLines = 1)
     }
 }
 
@@ -110,24 +107,16 @@ fun MinutesStepper(value: Int, onChange: (Int) -> Unit, range: IntRange, step: I
             Text(minutesText(value), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             FilledTonalIconButton(onClick = { onChange((value + step).coerceIn(range)) }, enabled = value < range.last) { Icon(Icons.Rounded.Add, words("Mehr", "More")) }
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) { quick.forEach { q -> FilterChip(selected = value == q, onClick = { onChange(q) }, label = { Text(minutesText(q)) }) } }
+        PillGrid(quick, { it == value }, onPick = onChange) { Text(minutesText(it), maxLines = 1) }
     }
-}
-
-fun pickTime(context: android.content.Context, initial: Int, onPick: (Int) -> Unit) {
-    TimePickerDialog(context, { _, h, m -> onPick(h * 60 + m) }, (initial / 60) % 24, initial % 60, DateFormat.is24HourFormat(context)).show()
-}
-
-fun pickDate(context: android.content.Context, initial: LocalDate, onPick: (LocalDate) -> Unit) {
-    DatePickerDialog(context, { _, y, m, d -> onPick(LocalDate.of(y, m + 1, d)) }, initial.year, initial.monthValue - 1, initial.dayOfMonth).apply {
-        datePicker.minDate = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-    }.show()
 }
 
 /** Type, amount and timing of a goal. Used by the setup flow and the goal editor. */
 @Composable
 fun GoalTargetEditor(goal: PracticeGoal, onChange: (PracticeGoal) -> Unit) {
-    val context = LocalContext.current
+    val pickers = LocalPickers.current
+    val lessonTitle = words("Wann ist der Termin?", "When is the lesson?")
+    val eventTitle = words("Um wie viel Uhr?", "At what time?")
     val colors = MaterialTheme.colorScheme
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         ChoiceCard(goal.type == GoalType.WEEKLY, Icons.Rounded.Repeat, words("Regelmäßig üben", "Practise regularly"),
@@ -147,7 +136,7 @@ fun GoalTargetEditor(goal: PracticeGoal, onChange: (PracticeGoal) -> Unit) {
                     if (perDay != goal.perDay) onChange(goal.copy(perDay = perDay, minutes = if (perDay) 20 else 100))
                 }
                 if (goal.perDay) MinutesStepper(goal.minutes, { onChange(goal.copy(minutes = it)) }, 5..240, 5, listOf(10, 15, 20, 30, 45, 60))
-                else MinutesStepper(goal.minutes, { onChange(goal.copy(minutes = it)) }, 10..1200, 10, listOf(60, 100, 150, 210, 300))
+                else MinutesStepper(goal.minutes, { onChange(goal.copy(minutes = it)) }, 10..1200, 10, listOf(60, 90, 120, 150, 200, 300))
                 Text(words("Wann beginnt eine neue Woche?", "When does a new week start?"), style = MaterialTheme.typography.titleMedium)
                 val custom = goal.resetDay != 0 || goal.resetMinute != 0
                 SegmentedChoice(listOf(words("Montags", "Mondays"), words("Nach einem Termin", "After a lesson")), if (custom) 1 else 0) {
@@ -157,7 +146,7 @@ fun GoalTargetEditor(goal: PracticeGoal, onChange: (PracticeGoal) -> Unit) {
                     Text(words("Zum Beispiel Klavierunterricht. Was du am Unterrichtstag vorher übst, zählt noch für die Woche davor.",
                         "For example a piano lesson. Practice on lesson day before the lesson still counts for the week before."), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                     DayToggles(setOf(goal.resetDay), { d -> onChange(goal.copy(resetDay = d)) }, (0..6).map { dayShortPlain(it, LocalEnglish.current).take(2) })
-                    OutlinedButton(onClick = { pickTime(context, goal.resetMinute) { onChange(goal.copy(resetMinute = it)) } }, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = { pickers.time(goal.resetMinute, lessonTitle) { onChange(goal.copy(resetMinute = it)) } }, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Rounded.Schedule, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(words("Termin um ${clock(goal.resetMinute)}", "Lesson at ${clock(goal.resetMinute)}"))
                     }
                 }
@@ -166,10 +155,10 @@ fun GoalTargetEditor(goal: PracticeGoal, onChange: (PracticeGoal) -> Unit) {
                 val due = goal.dueDate ?: LocalDate.now().plusDays(7)
                 Text(words("Wann ist der Termin?", "When is it?"), style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { pickDate(context, due) { onChange(goal.copy(deadline = it.toString())) } }, modifier = Modifier.weight(1.4f)) {
+                    OutlinedButton(onClick = { pickers.date(due) { onChange(goal.copy(deadline = it.toString())) } }, modifier = Modifier.weight(1.4f)) {
                         Icon(Icons.Rounded.CalendarToday, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(shortDate(due), maxLines = 1)
                     }
-                    OutlinedButton(onClick = { pickTime(context, goal.deadlineMinute ?: (10 * 60)) { onChange(goal.copy(deadlineMinute = it)) } }, modifier = Modifier.weight(1f)) {
+                    OutlinedButton(onClick = { pickers.time(goal.deadlineMinute ?: (10 * 60), eventTitle) { onChange(goal.copy(deadlineMinute = it)) } }, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Rounded.Schedule, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(goal.deadlineMinute?.let { clock(it) } ?: words("Uhrzeit", "Time"), maxLines = 1)
                     }
                 }
@@ -179,8 +168,8 @@ fun GoalTargetEditor(goal: PracticeGoal, onChange: (PracticeGoal) -> Unit) {
                     val perDay = it == 1
                     if (perDay != goal.perDay) onChange(goal.copy(perDay = perDay, minutes = if (perDay) 20 else 120))
                 }
-                if (goal.perDay) MinutesStepper(goal.minutes, { onChange(goal.copy(minutes = it)) }, 5..240, 5, listOf(10, 15, 20, 30, 45))
-                else MinutesStepper(goal.minutes, { onChange(goal.copy(minutes = it)) }, 10..6000, 10, listOf(60, 120, 180, 300, 600))
+                if (goal.perDay) MinutesStepper(goal.minutes, { onChange(goal.copy(minutes = it)) }, 5..240, 5, listOf(10, 15, 20, 30, 45, 60))
+                else MinutesStepper(goal.minutes, { onChange(goal.copy(minutes = it)) }, 10..6000, 10, listOf(60, 90, 120, 180, 300, 600))
             }
         }
     }
@@ -213,11 +202,10 @@ fun GoalEditorSheet(existing: PracticeGoal?, state: CadenceState, onDismiss: () 
         KindChips(goal.kind) { goal = goal.copy(kind = it) }
         GoalTargetEditor(goal) { goal = it }
         GoalDaysEditor(goal, state.availability) { goal = it }
-        if (existing != null) {
-            val preview = Planner.plan(state.copy(practiceGoals = state.practiceGoals.map { if (it.id == goal.id) goal else it }), goal, java.time.ZonedDateTime.now())
-            PlanHint(preview)
-        }
-        Button(onClick = { onSave(goal.copy(title = goal.title.trim(), createdOn = if (existing != null && existing.type == goal.type) existing.createdOn else LocalDate.now().toString())) },
+        val previewGoal = if (existing != null && existing.type == goal.type) goal else goal.copy(createdOn = Planner.freshStart(state.availability).toString())
+        val preview = Planner.plan(state.copy(practiceGoals = state.practiceGoals.filterNot { it.id == goal.id } + previewGoal), previewGoal, java.time.ZonedDateTime.now())
+        PlanHint(preview)
+        Button(onClick = { onSave(goal.copy(title = goal.title.trim(), createdOn = if (existing != null && existing.type == goal.type) existing.createdOn else Planner.freshStart(state.availability).toString())) },
             enabled = goal.title.isNotBlank() && validDate, modifier = Modifier.fillMaxWidth().height(56.dp)) { Text(words("Speichern", "Save")) }
         if (existing != null && onDelete != null) TextButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) {
             Icon(Icons.Rounded.DeleteOutline, null, Modifier.size(20.dp)); Spacer(Modifier.width(8.dp)); Text(words("Ziel löschen", "Delete goal"))

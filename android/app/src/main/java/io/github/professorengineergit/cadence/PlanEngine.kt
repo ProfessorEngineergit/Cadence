@@ -67,7 +67,7 @@ object Planner {
             val due = goal.dueDate ?: now.toLocalDate()
             val end = goal.deadlineMinute?.let { due.atTime(it / 60, it % 60) } ?: due.plusDays(1).atStartOfDay()
             val created = goal.createdDate.atStartOfDay()
-            Period(minOf(created, now.toLocalDate().atStartOfDay(), end), end)
+            Period(minOf(created, end), end)
         }
     }
 
@@ -105,7 +105,9 @@ object Planner {
         val zone = now.zone
         val local = now.toLocalDateTime()
         val today = local.toLocalDate()
-        val period = period(goal, local)
+        // A goal that starts in the future is planned from the week it starts in.
+        val startsAt = goal.createdDate.atStartOfDay()
+        val period = period(goal, if (goal.type == GoalType.WEEKLY && startsAt.isAfter(local)) startsAt else local)
         val sessions = state.sessionsFor(goal.id)
         fun startOf(s: PracticeSession) = java.time.Instant.ofEpochMilli(s.startedAt).atZone(zone).toLocalDateTime()
         val inPeriod = sessions.filter { val t = startOf(it); !t.isBefore(period.start) && t.isBefore(period.end) }
@@ -116,9 +118,18 @@ object Planner {
 
         val lastDay = period.end.minusMinutes(1).toLocalDate()
         val periodDates = generateSequence(period.start.toLocalDate()) { it.plusDays(1) }.takeWhile { !it.isAfter(lastDay) }.take(800).toList()
-        val caps = periodDates.map { capacity(goal, state.availability, it, period) }
+        val fullCaps = periodDates.map { capacity(goal, state.availability, it, period) }
+        // A weekly goal created during this week only asks for the share of free time left after it started.
+        val createdStart = goal.createdDate.atStartOfDay()
+        val partialWeek = goal.type == GoalType.WEEKLY && createdStart.isAfter(period.start)
+        val active = if (partialWeek) Period(createdStart, period.end) else period
+        val caps = if (partialWeek) periodDates.map { capacity(goal, state.availability, it, active) } else fullCaps
         val practiceDates = periodDates.indices.filter { caps[it] > 0 }.map { periodDates[it] }
-        val target = if (goal.perDay) goal.minutes * practiceDates.size.coerceAtLeast(1) else goal.minutes
+        val target = when {
+            goal.perDay -> goal.minutes * practiceDates.size.coerceAtLeast(1)
+            partialWeek -> ceil5((goal.minutes * caps.sum().toDouble() / fullCaps.sum().coerceAtLeast(1)).toInt())
+            else -> goal.minutes
+        }
 
         val ideal = spread(target, caps)
         val todayIndex = periodDates.indexOf(today)
@@ -141,8 +152,11 @@ object Planner {
             else -> DayStatus.TODO
         }
 
-        // Days after today share whatever is left once today's part is done.
-        val afterToday = (remainingBefore - maxOf(todayTarget, doneToday)).coerceAtLeast(0)
+        // Today only counts with the free time that is still ahead.
+        val restOfToday = if (todayIndex < 0) 0 else capacity(goal, state.availability, today, Period(maxOf(active.start, local), period.end))
+        // Days after today share whatever is left once today's part is done; if today's free time is over, today's rest moves on.
+        val todayWillDo = if (todayCap > 0 && restOfToday == 0) doneToday else maxOf(todayTarget, doneToday)
+        val afterToday = (remainingBefore - todayWillDo).coerceAtLeast(0)
         val laterIdx = periodDates.indices.filter { periodDates[it] > today }
         val later = spread(afterToday, laterIdx.map { caps[it] })
         val laterByDate = laterIdx.mapIndexed { i, idx -> periodDates[idx] to later[i] }.toMap()
@@ -150,7 +164,7 @@ object Planner {
 
         val shown = when (goal.type) {
             GoalType.WEEKLY -> periodDates
-            GoalType.DEADLINE -> (0..6L).map { today.plusDays(it) }.filter { !it.isAfter(lastDay) }.ifEmpty { periodDates.takeLast(7) }
+            GoalType.DEADLINE -> maxOf(today, period.start.toLocalDate()).let { from -> (0..6L).map { from.plusDays(it) } }.filter { !it.isAfter(lastDay) }.ifEmpty { periodDates.takeLast(7) }
         }
         val days = shown.map { date ->
             val idx = periodDates.indexOf(date)
@@ -161,11 +175,9 @@ object Planner {
                 date == today -> todayTarget
                 else -> laterByDate[date] ?: 0
             }
-            DayPlan(date, cap, planned, doneByDate[date] ?: 0, idx >= 0)
+            DayPlan(date, cap, planned, doneByDate[date] ?: 0, idx >= 0 && !date.isBefore(active.start.toLocalDate()))
         }
 
-        // Today only counts with the free time that is still ahead.
-        val restOfToday = if (todayIndex < 0) 0 else capacity(goal, state.availability, today, Period(maxOf(period.start, local), period.end))
         val capacityLeft = futureIdx.sumOf { if (periodDates[it] == today) restOfToday else caps[it] }
         val nextDay = generateSequence(today.plusDays(1)) { it.plusDays(1) }.take(14).firstOrNull { date ->
             date.dayOfWeek.value - 1 in goal.days && state.availability[date.dayOfWeek.value - 1].isNotEmpty() &&
@@ -176,6 +188,13 @@ object Planner {
             (remainingBefore - capacityLeft).coerceAtLeast(0), nextDay, yesterday,
             if (today.dayOfWeek.value - 1 in goal.days) state.availability[today.dayOfWeek.value - 1] else emptyList(),
             futureIdx.count { caps[it] > 0 }, goal.dueDate?.let { java.time.temporal.ChronoUnit.DAYS.between(today, it).toInt() })
+    }
+
+    /** The day a new goal starts: today if there is still free time ahead today, otherwise tomorrow. */
+    fun freshStart(availability: List<List<TimeSlot>>, now: ZonedDateTime = ZonedDateTime.now()): LocalDate {
+        val minute = now.hour * 60 + now.minute
+        val today = now.toLocalDate()
+        return if (availability[today.dayOfWeek.value - 1].any { it.end - 15 > minute }) today else today.plusDays(1)
     }
 
     fun plans(state: CadenceState, now: ZonedDateTime) = state.practiceGoals.map { plan(state, it, now) }

@@ -30,10 +30,15 @@ Timer
 22. Die Timer-Benachrichtigung zeigt Fortschritt zum Tagesziel, Pause und Fertig. Unter Android 16 als ProgressStyle mit kurzer Statusanzeige; die Live-Update-Hervorhebung entscheidet das System (auf dem getesteten Oppo mit Android 16 Build 36.0 noch nicht verfügbar). Der Fortschritt wird alle fünf Minuten und genau beim Erreichen des Tagesziels aktualisiert.
 23. Nach „Fertig“ aus der Benachrichtigung erscheint kurz eine Bestätigung mit dem Ergebnis.
 
+Einrichtung
+31. Fünf Schritte, je eine Frage; mehrere Ziele schon in der Einrichtung. Zurück bei offener Tastatur schließt nur die Tastatur. Die Szene klappt beim Tippen ein.
+32. Neue Ziele beginnen mit der nächsten freien Zeit (heute, sonst morgen). In der ersten Woche gilt nur der Anteil der verbleibenden freien Zeit.
+33. Hintergrund mit kleiner Physik: Objekte liegen unten, folgen der Schwerkraft beim Kippen (ohne Berechtigung), stoßen sich, rollen und ruhen dann, damit kein Strom verbraucht wird. Bei ausgeschalteten Animationen still.
+
 Rückmeldung und Darstellung
 24. Feiern nur bei echten Anlässen: Tagesziel geschafft, Wochen- oder Terminziel erreicht, Serien-Meilensteine (3, 7, 14, 21, 30 … Tage). Kurze Vibrationsmuster, abschaltbar.
 25. Die Serie überspringt Tage ohne freie Zeit und reißt nur an verpassten Übetagen.
-26. Auswahlknöpfe wie in Downlink: nicht gewählt leicht abgerundet, gewählt als Kapsel, mit kurzem Nachgeben beim Drücken.
+26. Auswahlknöpfe wie in Downlink: nicht gewählt leicht abgerundet, gewählt als Kapsel, mit kurzem Nachgeben beim Drücken. Schnellauswahl als Raster gleicher Breite, bündig zu beiden Rändern. Uhrzeit und Datum über Material-3-Picker.
 27. Widget in vier Größen (klein, breit, quadratisch, groß), folgt dem App-Design: hell, dunkel oder System.
 28. Deutsch und Englisch durchgehend über feste Textpaare; eingebaute Fokusnamen werden in beide Richtungen übersetzt.
 29. Daten von Version 1 (feste Minuten pro Wochentag, ein Zeitfenster pro Tag) werden beim ersten Start übernommen; ein Ladefehler überschreibt keine Daten.

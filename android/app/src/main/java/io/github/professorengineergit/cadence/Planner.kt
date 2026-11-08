@@ -65,8 +65,8 @@ fun WeekPlanList(plan: GoalPlan, availability: List<List<TimeSlot>>) {
                 Text(when {
                     !day.inPeriod -> if (day.date > (plan.goal.dueDate ?: day.date)) words("nach dem Termin", "after the date") else ""
                     day.capacity == 0 -> words("keine Zeit", "no time")
-                    else -> slots.joinToString(", ") { it.label() }
-                }, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, modifier = Modifier.weight(1f), maxLines = 2)
+                    else -> slots.joinToString("\n") { it.label() }
+                }, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, modifier = Modifier.weight(1f))
                 when {
                     past && day.done > 0 -> Text(words("${day.done} Min.", "${day.done} min"), style = MaterialTheme.typography.titleSmall, color = if (reached) colors.tertiary else colors.onSurface)
                     past -> Text(if (day.planned > 0) "–" else "", color = colors.onSurfaceVariant)
@@ -130,6 +130,7 @@ fun PlanScreen(state: CadenceState, onGoal: (PracticeGoal?) -> Unit, onSelect: (
 fun periodTitle(plan: GoalPlan): String {
     val goal = plan.goal
     if (goal.type == GoalType.DEADLINE) return words("Bis zum Termin", "Until the date")
+    if (plan.period.start.toLocalDate().isAfter(LocalDate.now())) return words("Ab ${dayName(plan.period.start.dayOfWeek.value - 1)}", "From ${dayName(plan.period.start.dayOfWeek.value - 1)}")
     if (goal.resetDay == 0 && goal.resetMinute == 0) return words("Diese Woche", "This week")
     val end = plan.period.end
     return words("Bis ${dayShort(end.dayOfWeek.value - 1)} ${clock(end.hour * 60 + end.minute)}", "Until ${dayShort(end.dayOfWeek.value - 1)} ${clock(end.hour * 60 + end.minute)}")

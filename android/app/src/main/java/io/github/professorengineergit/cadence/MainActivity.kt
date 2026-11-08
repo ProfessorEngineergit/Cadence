@@ -95,7 +95,7 @@ class MainActivity : ComponentActivity() {
                         isAppearanceLightNavigationBars = !dark
                     }
                 }
-                CadenceFeedback(model.state.haptics) { CompositionLocalProvider(LocalEnglish provides isEnglish(model.state.language)) { if (model.state.onboarded) CadenceApp(model, homeRequest) else Onboarding(model) } }
+                CompositionLocalProvider(LocalEnglish provides isEnglish(model.state.language)) { CadenceFeedback(model.state.haptics) { if (model.state.onboarded) CadenceApp(model, homeRequest) else Onboarding(model) } }
             }
         }
     }
@@ -221,7 +221,11 @@ fun todayLine(plan: GoalPlan): Pair<String, String> {
         DayStatus.GOAL_REACHED -> (if (plan.goal.type == GoalType.WEEKLY) words("Wochenziel erreicht", "Weekly goal reached") else words("Ziel erreicht", "Goal reached")) to
             (if (plan.goal.type == GoalType.WEEKLY) words("${plan.done} von ${plan.target} Min. Alles, was jetzt noch dazukommt, ist ein Bonus.", "${plan.done} of ${plan.target} min. Anything extra is a bonus.")
             else words("${plan.done} von ${plan.target} Min. Viel Erfolg beim Termin!", "${plan.done} of ${plan.target} min. Good luck!"))
-        DayStatus.REST -> words("Heute kein Übetag", "No practice planned today") to (next?.let { words("Weiter geht's am $it.", "Next up: $it.") } ?: words("Du hast heute keine freie Zeit eingetragen.", "You have no free time today."))
+        DayStatus.REST -> if (plan.goal.createdDate.isAfter(LocalDate.now())) {
+            val d = plan.goal.createdDate
+            val whenText = if (d == LocalDate.now().plusDays(1)) words("morgen", "tomorrow") else dayName(d.dayOfWeek.value - 1)
+            words("Startet $whenText", "Starts $whenText") to words("Ab dann plant Cadence jeden Tag für dich.", "From then on Cadence plans each day for you.")
+        } else words("Heute kein Übetag", "No practice planned today") to (next?.let { words("Weiter geht's am $it.", "Next up: $it.") } ?: words("Du hast heute keine freie Zeit eingetragen.", "You have no free time today."))
         DayStatus.AHEAD -> words("Heute ist frei", "You've got today off") to
             (if (plan.yesterdayMinutes > 0) words("Du hast gestern ${plan.yesterdayMinutes} Min. geübt und bist vorne. Gut gemacht! Wenn du trotzdem übst, zählt es natürlich.", "You practised ${plan.yesterdayMinutes} min yesterday and you're ahead. Well done! Practice still counts if you feel like it.")
             else words("Du bist deinem Plan voraus. Wenn du trotzdem übst, zählt es natürlich.", "You're ahead of plan. Practice still counts if you feel like it."))
@@ -396,10 +400,11 @@ fun SessionRow(session: PracticeSession, state: CadenceState, showGoal: Boolean,
                 Icon(goalIcon(goal?.kind ?: GoalKind.OTHER), null, tint = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.size(22.dp))
             }
             Column(Modifier.weight(1f)) {
-                Text(if (showGoal && goal != null) "${goal.title}: ${translate(session.focus, LocalEnglish.current)}" else translate(session.focus, LocalEnglish.current), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(translate(session.focus, LocalEnglish.current), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 val clockText = if (session.recordedWithTimer) clock(time.hour * 60 + time.minute) else words("nachgetragen", "logged")
-                val whenText = if (showDate) shortDate(time.toLocalDate()) + ", " + clockText else clockText
-                Text(if (session.note.isNotEmpty()) session.note else whenText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val meta = listOfNotNull(if (showGoal) goal?.title else null, if (showDate) shortDate(time.toLocalDate()) else null, clockText).joinToString(", ")
+                Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (session.note.isNotEmpty()) Text(session.note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f), maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             Text(if (session.durationSeconds < 60) words("${session.durationSeconds} Sek.", "${session.durationSeconds} sec") else minutesText((session.durationSeconds / 60).toInt()), style = MaterialTheme.typography.titleMedium)
         }
@@ -422,9 +427,12 @@ private fun HistoryScreen(state: CadenceState, streak: Int, onAdd: () -> Unit, o
     LazyColumn(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 124.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { PageHeader(words("Verlauf", "History")) { IconButton(onClick = onAdd) { Icon(Icons.Rounded.Add, words("Zeit nachtragen", "Log time")) } } }
         if (state.practiceGoals.size > 1) item {
-            Row(Modifier.fillMaxWidth().horizontalScrollCompat(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val options = listOf<PracticeGoal?>(null) + state.practiceGoals
+            if (options.size <= 3) PillGrid(options, { it?.id == filter }, columns = options.size, onPick = { filter = it?.id }) { g ->
+                Text(g?.title ?: words("Alle", "All"), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            } else Row(Modifier.fillMaxWidth().horizontalScrollCompat(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(selected = filter == null, onClick = { filter = null }, label = { Text(words("Alle Ziele", "All goals")) })
-                state.practiceGoals.forEach { g -> FilterChip(selected = filter == g.id, onClick = { filter = g.id }, label = { Text(g.title) }, leadingIcon = { Icon(goalIcon(g.kind), null, Modifier.size(16.dp)) }) }
+                state.practiceGoals.forEach { g -> FilterChip(selected = filter == g.id, onClick = { filter = g.id }, label = { Text(g.title, maxLines = 1) }, leadingIcon = { Icon(goalIcon(g.kind), null, Modifier.size(16.dp)) }) }
             }
         }
         item {
@@ -485,7 +493,7 @@ private fun WeeksChart(byDate: Map<LocalDate, Int>, today: LocalDate) {
                     Column(Modifier.weight(1f).clearAndSetSemantics { contentDescription = "$minutes" }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         if (minutes > 0) Text("$minutes", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1)
                         Box(Modifier.fillMaxWidth().height(max(4f, minutes / maxValue * 80).dp).clip(RoundedCornerShape(8.dp)).background(if (i == weeks.lastIndex) colors.primary else colors.secondary.copy(alpha = 0.7f)))
-                        Text(if (i % 2 == 1) ws.format(DateTimeFormatter.ofPattern("d.M.")) else " ", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1, softWrap = false)
+                        Text(if (i % 2 == 1) ws.format(DateTimeFormatter.ofPattern(if (LocalEnglish.current) "d/M" else "d.M.", appLocale())) else " ", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1, softWrap = false)
                     }
                 }
             }

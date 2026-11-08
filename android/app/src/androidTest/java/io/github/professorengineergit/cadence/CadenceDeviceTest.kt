@@ -27,6 +27,7 @@ class CadenceDeviceTest {
 
     @Before fun prepare() {
         assertTrue("Device tests must use the isolated QA package", context.packageName.endsWith(".qa"))
+        IntroMotion.forceStatic = true
         WorkManager.getInstance(context).cancelAllWork().result.get()
         context.getSharedPreferences("reminder_delivery", Context.MODE_PRIVATE).edit().clear().commit()
         context.getSystemService(NotificationManager::class.java).cancelAll()
@@ -83,7 +84,10 @@ class CadenceDeviceTest {
     @Test fun englishSetupCreatesGoalAndFreeTime() {
         launch(CadenceState(language = AppLanguage.EN, onboarded = false))
         ready("Let's go"); compose.onNodeWithText("Let's go").performClick()
+        ready("What do you want to practise?"); compose.waitForIdle(); Thread.sleep(800)
+        compose.onNode(hasSetTextAction()).performClick()
         compose.onNode(hasSetTextAction()).performTextInput("Cello")
+        device.pressBack()
         compose.onNodeWithText("Next").performClick(); ready("What's your goal?")
         compose.onNodeWithText("Next").performClick(); ready("When do you have time?")
         compose.onNodeWithText("Evenings, weekend afternoons").performClick()
