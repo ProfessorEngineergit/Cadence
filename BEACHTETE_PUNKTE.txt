@@ -1,33 +1,43 @@
-Cadence — 25 zusätzliche berücksichtigte Punkte
+Cadence — berücksichtigte Punkte
 Stand: 8. November 2026
 
-1. Nur eine laufende Session gleichzeitig, auch beim Wechsel zwischen mehreren Zielen.
-2. Pausen zählen nicht zur Übezeit; der pausierte Zustand wird dauerhaft gespeichert.
-3. Zeitmessung über Zeitstempel: App-Schließen beendet die Session nicht. Die Anzeige wird beim Wiederöffnen wiederhergestellt.
-4. Doppelte „Beenden“-Aktionen erzeugen keinen zweiten Eintrag.
-5. Ein Start aus einer Benachrichtigung wird nur einmal verarbeitet. Eine spätere Neuerstellung der Activity startet keinen neuen Timer.
-6. Benachrichtigungen und Widget öffnen das richtige Übeziel. Sessions verschiedener Ziele bleiben getrennt.
-7. Minuten und Sekunden bleiben beim Bearbeiten genau erhalten. Kurze Sessions gehen nicht durch Rundung verloren.
-8. Wochen beginnen montags. Lokale Datumsgrenzen und die Zeitumstellung sind in den Berechnungen berücksichtigt.
-9. Sekunden werden zuerst summiert und erst danach in Minuten umgerechnet.
-10. Bestehende Android-Daten erhalten sinnvolle Standardwerte für neue Felder. Ein Ladefehler überschreibt keine vorhandenen Daten.
-11. Ungültige Dauer und zukünftige manuelle Einträge werden abgefangen; Löschungen benötigen eine bewusste Bestätigung in der App.
-12. Ein Gesamtwochenziel wird auf ausgewählte Tage verteilt, ohne deren verfügbare Zeit zu überschreiten.
-13. Die gemeinsame Verfügbarkeit gilt für alle Ziele. Wenn die Summe der Ziele einen Tag überfüllt, wird das sichtbar gemeldet.
-14. Ziele mit Termin haben einen eigenen Gesamtfortschritt. Der Plan zeigt, wenn bis zum Termin zu wenig Übezeit eingeplant ist.
-15. Erinnerungen passen den Bedarf an den verbleibenden Zeitraum an. Erreichte oder abgelaufene Terminziele werden nicht weiter angemahnt.
-16. Nach einer Übesession herrscht mindestens drei Stunden Ruhe — auch wenn die Übezeit zu einem anderen Ziel gehört.
-17. Zusätzliches Üben zählt für den weiteren Wochenplan mit. Die Uhrzeit kann aus mindestens drei echten Timer-Sessions gelernt werden; manuelle Einträge verfälschen das nicht.
-18. Ein gemeinsames Tageslimit und mindestens drei Stunden Abstand verhindern, dass mehrere Ziele gleichzeitig mit Erinnerungen drängeln.
-19. Nur innerhalb der Zeitfenster; freie Tage werden respektiert. „30 Minuten später“ und „Heute Pause“ wirken auch im Hintergrund.
-20. Benachrichtigungen erfordern Androids Freigabe. Die App enthält Testnachrichten und einen Zugang zu den Systemeinstellungen.
-21. Der laufende Timer hat eine eigene stille Benachrichtigung mit Chronometer sowie Pause/Fortsetzen/Beenden. Android 16 wird um Live-Update-Hervorhebung gebeten; Android/Oppo entscheidet darüber. Eine normale laufende Benachrichtigung bleibt der Rückfall.
-22. Der Abschlusston ist abschaltbar und respektiert Lautlos und „Nicht stören“. Das Vorschau-Steuerelement erklärt, wenn das Gerät stumm ist.
-23. Haptik lässt sich abschalten. Slider, Tabs und Schaltflächen haben gezielte Rückmeldungen. Vertikale Popup-Gesten und horizontale Zeitfenster-Gesten konkurrieren nicht.
-24. Deutsch und Englisch, Androids App-Sprache sowie helle, dunkle und Gerätefarben sind vorgesehen. Die getestete Oppo-Darstellung nutzt 360 dp Breite; der Timer berührt den Wellenring nicht und der Inhalt läuft hinter der schwebenden Tab-Bar weiter.
-25. Kein Konto und kein eigener Cloud-Dienst. CSV enthält exakte Dauer, Notizen und Zielnamen; Anführungszeichen und Zeilenumbrüche werden maskiert, Tabellenformeln entschärft. Androids aktivierte Systemsicherung kann App-Daten sichern.
+Ziele und Plan
+1. Zwei Arten von Zielen: regelmäßig (pro Woche oder pro Übetag) und bis zu einem Termin (insgesamt oder pro Tag, optional mit Uhrzeit).
+2. Eine Woche kann an einem festen Termin beginnen, z. B. Montag 16:00 nach dem Unterricht. Üben am Montag davor zählt für die alte Woche; am Termintag wird nur die freie Zeit vor dem Termin verplant.
+3. Bei Terminzielen zählt am Termintag nur die freie Zeit vor der angegebenen Uhrzeit.
+4. Freie Zeit wird pro Wochentag mit beliebig vielen Zeitfenstern eingetragen und gilt für alle Ziele. Überlappende Fenster werden zusammengefasst.
+5. Das Tagesziel ist der kleinere Wert aus „Rest gleichmäßig auf die verbleibenden Tage verteilt“ und „was ein gleichmäßiger Plan bis heute erwartet, abzüglich des bisher Geübten“. Vorarbeiten senkt das Tagesziel oder macht den Tag frei, Rückstand wird verteilt statt auf einen Tag gestapelt.
+6. Üben am heutigen Tag verändert das heutige Ziel nicht nachträglich; Mehrarbeit entlastet die folgenden Tage.
+7. Verteilung in 5-Minuten-Schritten, nie mehr als die freie Zeit eines Tages (höchstens 240 Min.).
+8. Reicht die freie Zeit bis zum Ende der Woche oder bis zum Termin nicht, wird der Fehlbetrag angezeigt. Tage, an denen alle Ziele zusammen mehr brauchen als frei ist, werden gemeldet.
+9. Erreichte Ziele und abgelaufene Termine werden erkannt; danach gibt es keine Erinnerungen mehr für dieses Ziel.
+10. Beim Bearbeiten eines Ziels bleibt sein Beginn erhalten, damit bisheriges Üben weiter zählt.
+
+Erinnerungen
+11. Erste Erinnerung zu Beginn eines freien Zeitfensters, sofern heute noch etwas ansteht. Nach mindestens drei Timer-Sessions auf ähnlichen Tagen (werktags/Wochenende) zur üblichen Anfangszeit, wenn diese im Fenster liegt und noch genug Zeit bleibt. Manuelle Einträge zählen dafür nicht.
+12. Spätere Zeitfenster am selben Tag bekommen eine eigene Erinnerung, das letzte eine Nachfrage, solange die Zeit noch reicht.
+13. Keine Erinnerung, wenn heute erledigt ist, an Tagen ohne freie Zeit, während ein Timer läuft (auch pausiert) und innerhalb einer Stunde nach dem Üben, auch wenn das Üben zu einem anderen Ziel gehörte.
+14. Tageslimit 1–3, mindestens 45 Minuten Abstand. Mehrere Ziele teilen sich eine Erinnerung.
+15. Wurden Erinnerungen an drei Tagen in Folge ohne Üben gesendet, kommt nur noch eine pro Tag, bis wieder geübt wird. „Heute nicht“ zählt nicht als ignoriert.
+16. An Tagen, die durch Vorarbeiten frei sind, optional eine kurze Nachricht „Heute ist frei“.
+17. Zeitplanung per AlarmManager für den nächsten sinnvollen Moment; neu geplant nach jeder Änderung, nach Neustart, App-Update sowie Uhrzeit- und Zeitzonenwechsel. WorkManager läuft stündlich nur als Sicherheitsnetz. Verspätete Wecker werden höchstens 20 Minuten nachgeholt.
+18. „In 30 Min.“ und „Heute nicht“ wirken auch im Hintergrund. Beim Öffnen der App verschwindet eine offene Erinnerung.
+
+Timer
+19. Nur eine laufende Session gleichzeitig. Pausen zählen nicht; Zeitmessung über Zeitstempel, die App darf geschlossen werden.
+20. Doppelte „Fertig“-Aktionen erzeugen keinen zweiten Eintrag; ein Start aus Benachrichtigung oder Widget wird nur einmal verarbeitet.
+21. Das Timer-Ziel richtet sich nach dem, was heute noch fehlt; der Ring zeigt den Tagesfortschritt einschließlich früherer Sessions. Beim Erreichen des Tagesziels gibt es eine kurze Vibration.
+22. Die Timer-Benachrichtigung zeigt Fortschritt zum Tagesziel, Pause und Fertig. Unter Android 16 als ProgressStyle mit kurzer Statusanzeige; die Live-Update-Hervorhebung entscheidet das System (auf dem getesteten Oppo mit Android 16 Build 36.0 noch nicht verfügbar). Der Fortschritt wird alle fünf Minuten und genau beim Erreichen des Tagesziels aktualisiert.
+23. Nach „Fertig“ aus der Benachrichtigung erscheint kurz eine Bestätigung mit dem Ergebnis.
+
+Rückmeldung und Darstellung
+24. Feiern nur bei echten Anlässen: Tagesziel geschafft, Wochen- oder Terminziel erreicht, Serien-Meilensteine (3, 7, 14, 21, 30 … Tage). Kurze Vibrationsmuster, abschaltbar.
+25. Die Serie überspringt Tage ohne freie Zeit und reißt nur an verpassten Übetagen.
+26. Auswahlknöpfe wie in Downlink: nicht gewählt leicht abgerundet, gewählt als Kapsel, mit kurzem Nachgeben beim Drücken.
+27. Widget in vier Größen (klein, breit, quadratisch, groß), folgt dem App-Design: hell, dunkel oder System.
+28. Deutsch und Englisch durchgehend über feste Textpaare; eingebaute Fokusnamen werden in beide Richtungen übersetzt.
+29. Daten von Version 1 (feste Minuten pro Wochentag, ein Zeitfenster pro Tag) werden beim ersten Start übernommen; ein Ladefehler überschreibt keine Daten.
+30. Kein Konto, kein eigener Server. CSV mit exakten Sekunden, Notizen und Zielnamen, Formeln entschärft.
 
 Prüfung
-Die Logiktests prüfen Zeit-/Wochenberechnungen, Timer, Verteilung, CSV und Erinnerungsentscheidungen.
-Die getrennte QA-App prüft auf dem Oppo die Kernabläufe, Eingaben, Popup-Gesten, mehrsprachige Einführung, Zieltrennung und Benachrichtigungsaktionen. Die tatsächliche Cadence-App wird dabei nicht zurückgesetzt.
-Systemgrenzen: Android/Oppo kann Hintergrundarbeit verzögern. Ein ausdrücklich erzwungener App-Stopp unterbindet Hintergrundarbeit bis zum nächsten Öffnen. Live-Update-Hervorhebung kann vom Gerät abgelehnt werden. Der Timer selbst läuft als gespeicherte Zeitmessung weiter; er ist kein minutengenauer Wecker.
+Unit-Tests decken Planung (Verteilung, Vorarbeiten, Rückstand, Unterrichtswoche, Termin mit Uhrzeit, Fehlbetrag, Serie, Migration) und Erinnerungen (Zeitpunkte, Toleranz, Ruhezeiten, freie Tage, Schlummern, Ignorieren, gelernte Zeit, Texte) ab. Gerätetests laufen nur in der getrennten QA-App.

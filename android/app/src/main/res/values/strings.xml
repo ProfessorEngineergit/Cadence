@@ -1,1 +1,4 @@
-<resources><string name="widget_description">Dein Wochenfortschritt und ein direkter Start in deine nächste Session.</string></resources>
+<resources>
+    <string name="widget_label">Cadence: Heute üben</string>
+    <string name="widget_description">Zeigt, was heute dran ist, und startet den Timer mit einem Tipp.</string>
+</resources>

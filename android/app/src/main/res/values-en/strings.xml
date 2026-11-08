@@ -1,1 +1,4 @@
-<resources><string name="widget_description">Your weekly progress and a quick start for your next practice session.</string></resources>
+<resources>
+    <string name="widget_label">Cadence: Today\'s practice</string>
+    <string name="widget_description">Shows today\'s practice and starts the timer with one tap.</string>
+</resources>

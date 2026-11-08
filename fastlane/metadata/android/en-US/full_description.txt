@@ -1,9 +1,11 @@
-Cadence is a practice tracker for music, studying, presentations and new skills.
+Cadence helps you practise regularly without having to keep it in your head: for an instrument, a talk, an exam or anything else that takes practice.
 
-Create separate goals for an ongoing routine or a deadline. Choose a weekly target and practice days, or fine-tune daily time windows and targets. Track sessions with a persistent timer, pause and resume, or log practice afterwards.
+You set a goal, for example 100 minutes of piano a week or two hours before Thursday's talk at 10 am. Then you add when you actually have time, say Thursday to Sunday from 5 to 6 pm. Cadence spreads the goal over those times and shows you each day how much is due today.
 
-Local reminders adapt to progress, recent practice and your availability. An ongoing timer notification provides pause and finish actions. A home-screen widget, optional completion chime, haptics, session notes and CSV export help you keep going.
+The plan adapts. Practise more one day and the next days get lighter, sometimes a day becomes completely free. Miss a day and the rest is spread out again instead of piling up. A weekly goal can also start its week at a lesson: practice before Monday's piano lesson still counts for the week before.
 
-German and English. Light, dark and device-colour themes. No account, ads or remote backend. Android system backup may include app data when enabled.
+Reminders arrive when your free time starts and there's still something to do today. At most two or three a day, never once you're done and never right after practising. Ignore them for a few days and they get quieter. If you're ahead, Cadence tells you that today is off.
 
-Reminder timing and Live Update promotion depend on Android and your device.
+Also included: a timer that keeps running when the app is closed, with progress in its notification, several goals side by side, a history with calendar and weekly overview, a streak that doesn't break on your days off, a light and dark home screen widget, notes and CSV export.
+
+German and English. No account, no ads, no trackers, no server. If Android backup is on, it may include the app data.

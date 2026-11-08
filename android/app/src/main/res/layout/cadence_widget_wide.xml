@@ -1,0 +1,17 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="horizontal" android:gravity="center_vertical" android:paddingStart="18dp" android:paddingEnd="12dp" android:paddingTop="8dp" android:paddingBottom="8dp" android:background="@drawable/widget_background">
+    <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
+        <FrameLayout android:layout_width="match_parent" android:layout_height="30dp">
+            <TextView android:id="@+id/widget_headline" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center_vertical|start"
+                android:textStyle="bold" android:textColor="@color/widget_text" android:maxLines="1"
+                android:autoSizeTextType="uniform" android:autoSizeMinTextSize="13sp" android:autoSizeMaxTextSize="22sp" android:autoSizeStepGranularity="1sp"/>
+            <Chronometer android:id="@+id/widget_chronometer" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center_vertical|start"
+                android:textSize="22sp" android:textStyle="bold" android:textColor="@color/widget_text" android:visibility="gone"/>
+        </FrameLayout>
+        <TextView android:id="@+id/widget_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/widget_subtext" android:maxLines="1" android:ellipsize="end"/>
+        <ProgressBar android:id="@+id/widget_bar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="5dp" android:layout_marginTop="5dp"
+            android:progressTint="@color/widget_progress" android:progressBackgroundTint="@color/widget_track" android:max="100"/>
+    </LinearLayout>
+    <TextView android:id="@+id/widget_start" android:layout_width="wrap_content" android:minWidth="96dp" android:layout_height="44dp" android:layout_marginStart="12dp" android:gravity="center"
+        android:paddingStart="14dp" android:paddingEnd="14dp" android:background="@drawable/widget_button" android:textSize="14sp" android:textStyle="bold" android:textColor="@color/widget_button_text" android:maxLines="1"/>
+</LinearLayout>

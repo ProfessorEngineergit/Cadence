@@ -1,1 +1,1 @@
-First Android version with multiple goals, weekly planning, adaptive local reminders, a live timer, widget, German/English interface and CSV export.
+First release: weekly or deadline goals, free time per day, a plan that adapts every day, reminders when your free time starts, a timer with progress in its notification, history with calendar, light and dark widget.

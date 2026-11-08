@@ -8,7 +8,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ListAlt
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,14 +35,14 @@ fun CadenceTabBar(selected: Int, haze: HazeState, onSelect: (Int) -> Unit) {
         Row(Modifier.clip(CircleShape).hazeEffect(haze, HazeStyle(backgroundColor = colors.surface, tints = listOf(HazeTint(colors.surfaceContainerHigh.copy(alpha = 0.2f))), blurRadius = 24.dp, noiseFactor = 0f))
             .background(colors.surfaceContainerHigh.copy(alpha = 0.1f)).padding(6.dp),
             horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-            listOf("Heute" to Icons.Rounded.WbSunny, "Verlauf" to Icons.AutoMirrored.Rounded.ListAlt, "Rhythmus" to Icons.Rounded.Tune, "Optionen" to Icons.Rounded.Settings).forEachIndexed { i, item ->
+            listOf(words("Heute", "Today") to Icons.Rounded.WbSunny, words("Verlauf", "History") to Icons.Rounded.BarChart, words("Plan", "Plan") to Icons.Rounded.EditCalendar, words("Einstellungen", "Settings") to Icons.Rounded.Settings).forEachIndexed { i, item ->
                 val active = selected == i
                 val bg by animateColorAsState(if (active) colors.primary else Color.Transparent, label = "Tab-Hintergrund")
                 val fg by animateColorAsState(if (active) colors.onPrimary else colors.onSurface.copy(alpha = 0.85f), label = "Tab-Symbol")
                 Row(Modifier.height(52.dp).clip(CircleShape).background(bg).semantics { this.selected = active }
                     .clickable(remember { MutableInteractionSource() }, null, role = Role.Tab) { if (!active && enabled) haptic.performHapticFeedback(HapticFeedbackType.SegmentTick); onSelect(i) }
-                    .padding(horizontal = if (active) 20.dp else 18.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(item.second, translate(item.first, LocalEnglish.current), tint = fg, modifier = Modifier.size(24.dp))
+                    .padding(horizontal = if (active) 18.dp else 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(item.second, item.first, tint = fg, modifier = Modifier.size(24.dp))
                     if (active) { Spacer(Modifier.width(10.dp)); Text(item.first, color = fg, fontWeight = FontWeight.SemiBold, fontSize = 16.sp) }
                 }
             }

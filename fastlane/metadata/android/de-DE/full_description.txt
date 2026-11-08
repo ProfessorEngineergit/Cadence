@@ -1,9 +1,11 @@
-Cadence ist ein Übezeit-Tracker für Instrumente, Lernen, Referate und neue Fähigkeiten.
+Cadence hilft dir, regelmäßig zu üben, ohne ständig daran denken zu müssen: für ein Instrument, ein Referat, eine Prüfung oder alles andere, das Übung braucht.
 
-Lege getrennte Ziele als laufende Routine oder mit Zieltermin an. Wähle dein Wochenziel und deine Übetage oder passe tägliche Zeitfenster und Ziele genau an. Miss Sessions mit einem dauerhaft gespeicherten Timer, pausiere oder trage Übezeit nach.
+Du legst ein Ziel fest, zum Beispiel 100 Minuten Klavier pro Woche oder zwei Stunden bis zum Referat am Donnerstag um 10 Uhr. Dann trägst du ein, wann du wirklich Zeit hast, etwa donnerstags bis sonntags von 17 bis 18 Uhr. Cadence verteilt das Ziel auf diese Zeiten und zeigt dir jeden Tag, wie viel heute dran ist.
 
-Lokale Erinnerungen passen sich Fortschritt, letzten Sessions und deiner freien Zeit an. Die laufende Timer-Benachrichtigung bietet Pause und Beenden. Widget, optionaler Abschlusston, Haptik, Notizen und CSV-Export helfen beim Dranbleiben.
+Der Plan passt sich an. Übst du an einem Tag mehr, wird es an den nächsten Tagen weniger, manchmal ist dann ein Tag ganz frei. Verpasst du einen Tag, wird der Rest neu verteilt, statt sich auf einen Tag zu stapeln. Bei regelmäßigen Zielen kann die Woche auch mit einem Termin wie dem Klavierunterricht beginnen: Was du vor dem Unterricht übst, zählt noch für die alte Woche.
 
-Deutsch und Englisch. Helle, dunkle und Gerätefarben. Kein Konto, keine Werbung und kein eigener Cloud-Dienst. Androids aktivierte Systemsicherung kann App-Daten sichern.
+Erinnerungen kommen, wenn deine freie Zeit beginnt und heute noch etwas ansteht. Höchstens zwei- oder dreimal am Tag, nie wenn du schon fertig bist, nie direkt nach dem Üben. Ignorierst du sie ein paar Tage, wird es leiser. Hast du vorgearbeitet, sagt Cadence dir, dass heute frei ist.
 
-Erinnerungszeiten und Live-Update-Hervorhebung hängen von Android und deinem Gerät ab.
+Außerdem: ein Timer, der auch bei geschlossener App weiterläuft, mit Fortschritt in der Benachrichtigung, mehrere Ziele nebeneinander, ein Verlauf mit Kalender und Wochenübersicht, eine Serie, die an freien Tagen nicht reißt, ein Widget für den Startbildschirm in Hell und Dunkel, Notizen und CSV-Export.
+
+Deutsch und Englisch. Kein Konto, keine Werbung, keine Tracker, kein eigener Server. Wenn die Android-Sicherung aktiv ist, kann sie die App-Daten mitsichern.

@@ -1,11 +1,8 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.material3.ExperimentalMaterial3ExpressiveApi::class)
 package io.github.professorengineergit.cadence
 
-import android.app.TimePickerDialog
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -18,251 +15,130 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import kotlin.math.abs
-import kotlin.math.min
-import kotlin.math.roundToInt
+import java.time.LocalDate
+import java.time.ZonedDateTime
 
+/** Goals as tabs; the last chip adds a new one. */
 @Composable
-fun GoalPill(state: CadenceState, onClick: () -> Unit) {
-    Surface(onClick = tap(onClick), color = MaterialTheme.colorScheme.surfaceContainerLow, shape = CircleShape) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(when (state.activeGoal.kind) { GoalKind.MUSIC -> Icons.Rounded.MusicNote; GoalKind.STUDY -> Icons.Rounded.School; GoalKind.OTHER -> Icons.Rounded.AutoAwesome }, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(22.dp))
-            Column(Modifier.weight(1f)) {
-                Text(state.activeGoal.title, style = MaterialTheme.typography.titleMedium, maxLines = 1)
-                val total = state.selectedSessions.sumOf { it.durationSeconds } / 60
-                Text(if (state.activeGoal.dueDate == null) words("Deine laufende Routine", "Your ongoing routine") else words("$total / ${state.activeGoal.totalTarget} Min. bis ${state.activeGoal.dueDate}", "$total / ${state.activeGoal.totalTarget} min by ${state.activeGoal.dueDate}"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (state.activeGoal.dueDate != null) LinearProgressIndicator(progress = { (total.toFloat() / state.activeGoal.totalTarget).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().height(3.dp).padding(top = 1.dp), color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.outlineVariant)
+fun GoalTabs(state: CadenceState, onSelect: (String) -> Unit, onAdd: () -> Unit, onEdit: (PracticeGoal) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        state.practiceGoals.forEach { goal ->
+            val selected = goal.id == state.activeGoal.id
+            Surface(onClick = tap({ if (selected) onEdit(goal) else onSelect(goal.id) }), shape = CircleShape,
+                color = if (selected) colors.secondaryContainer else colors.surfaceContainerLow, contentColor = if (selected) colors.onSecondaryContainer else colors.onSurface) {
+                Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(goalIcon(goal.kind), null, Modifier.size(18.dp))
+                    Text(goal.title, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 160.dp))
+                    if (selected) Icon(Icons.Rounded.Edit, words("Ziel bearbeiten", "Edit goal"), Modifier.size(15.dp))
+                }
             }
-            Icon(Icons.Rounded.ExpandMore, words("Übeziel wechseln oder hinzufügen", "Switch or add practice goal"), Modifier.size(22.dp))
+        }
+        Surface(onClick = tap(onAdd), shape = CircleShape, color = colors.surfaceContainerLow) {
+            Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(Icons.Rounded.Add, null, Modifier.size(18.dp))
+                if (state.practiceGoals.size == 1) Text(words("Ziel", "Goal"), style = MaterialTheme.typography.labelLarge)
+            }
+        }
+    }
+}
+
+/** One row per day: free time, plan and what you did. */
+@Composable
+fun WeekPlanList(plan: GoalPlan, availability: List<List<TimeSlot>>) {
+    val colors = MaterialTheme.colorScheme
+    val today = LocalDate.now()
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        plan.days.forEach { day ->
+            val isToday = day.date == today
+            val past = day.date < today
+            val slots = availability[day.date.dayOfWeek.value - 1]
+            val reached = day.planned > 0 && day.done >= day.planned
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(if (isToday) colors.primaryContainer.copy(alpha = 0.55f) else androidx.compose.ui.graphics.Color.Transparent)
+                .padding(horizontal = 10.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.width(62.dp)) {
+                    Text(if (isToday) words("Heute", "Today") else dayShort(day.date.dayOfWeek.value - 1), style = MaterialTheme.typography.titleSmall, color = if (day.inPeriod) colors.onSurface else colors.onSurfaceVariant)
+                    Text(day.date.format(java.time.format.DateTimeFormatter.ofPattern(if (LocalEnglish.current) "d MMM" else "d. MMM", appLocale())), style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                }
+                Text(when {
+                    !day.inPeriod -> if (day.date > (plan.goal.dueDate ?: day.date)) words("nach dem Termin", "after the date") else ""
+                    day.capacity == 0 -> words("keine Zeit", "no time")
+                    else -> slots.joinToString(", ") { it.label() }
+                }, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, modifier = Modifier.weight(1f), maxLines = 2)
+                when {
+                    past && day.done > 0 -> Text(words("${day.done} Min.", "${day.done} min"), style = MaterialTheme.typography.titleSmall, color = if (reached) colors.tertiary else colors.onSurface)
+                    past -> Text(if (day.planned > 0) "–" else "", color = colors.onSurfaceVariant)
+                    isToday && day.planned == 0 && day.done == 0 && day.capacity > 0 -> Text(words("frei", "free"), style = MaterialTheme.typography.titleSmall, color = colors.tertiary)
+                    isToday && day.done > 0 -> Text(if (day.planned > 0) "${day.done} / ${day.planned}" else words("${day.done} Min.", "${day.done} min"), style = MaterialTheme.typography.titleSmall, color = if (reached || day.planned == 0) colors.tertiary else colors.primary)
+                    day.planned > 0 -> Text(words("${day.planned} Min.", "${day.planned} min"), style = MaterialTheme.typography.titleSmall, color = if (isToday) colors.primary else colors.onSurface)
+                    day.capacity > 0 && day.inPeriod -> Text(words("frei", "free"), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                }
+                if (reached && (past || isToday)) Icon(Icons.Rounded.Check, null, Modifier.padding(start = 4.dp).size(16.dp), tint = colors.tertiary)
+            }
         }
     }
 }
 
 @Composable
-fun PlanScreen(state: CadenceState, stats: PracticeStats, onSettings: () -> Unit, onGoal: () -> Unit, onDayPlan: (Int, Int, Availability) -> Unit, onWeeklyPlan: (Int, Set<Int>) -> Unit) {
-    var selected by remember { mutableStateOf<Int?>(null) }
-    var weeklyEditor by remember { mutableStateOf(false) }
+fun PlanScreen(state: CadenceState, onGoal: (PracticeGoal?) -> Unit, onSelect: (String) -> Unit, onAvailability: (List<List<TimeSlot>>) -> Unit) {
     val colors = MaterialTheme.colorScheme
-    val windows = state.reminders.windows
-    val totalAvailable = windows.sumOf { it.minutes }
-    val allocated = state.practiceGoals.sumOf { it.dayTargets.sum() }
-    val maxAvailable = windows.maxOf { it.minutes }.coerceAtLeast(60).toFloat()
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, bottom = 124.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-        PageHeader("", onSettings)
-        Text(words("Deine Woche.\nDein Rhythmus.", "Your week.\nYour rhythm."), style = MaterialTheme.typography.headlineLarge)
-        GoalPill(state, onGoal)
-        Surface(onClick = tap({ weeklyEditor = true }), color = colors.primaryContainer, shape = RoundedCornerShape(28.dp)) {
-            Row(Modifier.fillMaxWidth().padding(22.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(words("WOCHENZIEL · ANTIPPEN", "WEEKLY GOAL · TAP TO EDIT"), style = MaterialTheme.typography.labelMedium)
-                    Text("${state.goals.sum()} min", style = MaterialTheme.typography.headlineLarge)
-                    Text(words("für ${state.activeGoal.title}", "for ${state.activeGoal.title}"), style = MaterialTheme.typography.bodyMedium)
-                }
-                Icon(Icons.Rounded.Edit, null, Modifier.size(28.dp))
-            }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(words("An diesen Tagen übe ich", "My practice days"), style = MaterialTheme.typography.titleMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                val selectedDays = (0..6).filter { state.goals[it] > 0 }.toSet()
-                (0..6).forEach { i -> FilterChip(selected = i in selectedDays, onClick = {
-                    val next = if (i in selectedDays) selectedDays - i else selectedDays + i
-                    val capacity = next.sumOf { (windows[it].end - windows[it].start).coerceAtMost(240) }
-                    val total = if (next.isEmpty()) 0 else (state.goals.sum().takeIf { it > 0 } ?: 100).coerceIn(next.size * 5, capacity)
-                    onWeeklyPlan(total, next)
-                }, label = { Text(dayShort(i)) }) }
-            }
-            Text(words("Wochenziel wird auf deine Übetage verteilt. Für genaue Uhrzeiten oder eigene Tagesziele: unten auf den Tag tippen.", "Your weekly goal is shared across these days. Tap a day below for exact times or an individual daily target."), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-        }
-        state.activeGoal.dueDate?.let { due ->
-            val daysLeft = java.time.temporal.ChronoUnit.DAYS.between(stats.today, due).coerceIn(0, 3650)
-            val planned = (0..daysLeft).sumOf { state.goals[stats.today.plusDays(it).dayOfWeek.value - 1] } - minOf(stats.todayMinutes.toInt(), stats.todayGoal)
-            val remaining = (state.activeGoal.totalTarget - state.selectedSessions.sumOf { it.durationSeconds } / 60).coerceAtLeast(0)
-            Surface(shape = RoundedCornerShape(24.dp), color = if (remaining > planned) colors.primaryContainer else colors.tertiaryContainer) {
-                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(words("Dein Zieltermin im Blick", "Keep your deadline in sight"), style = MaterialTheme.typography.titleMedium)
-                    Text(words("Noch $remaining Min. bis $due · $planned Min. in deinem aktuellen Plan.", "$remaining min left by $due · $planned min in your current plan."), style = MaterialTheme.typography.bodyMedium)
-                    if (remaining > planned) Text(words("Für dein Gesamtziel fehlen im Plan noch ${remaining - planned} Minuten. Erhöhe dein Wochenziel oder passe einzelne Tage an.", "Your schedule is ${remaining - planned} minutes short of the total target. Increase your weekly goal or adjust individual days."), style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        }
+    val now = ZonedDateTime.now()
+    val plans = Planner.plans(state, now)
+    val active = plans.first { it.goal.id == state.activeGoal.id }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, bottom = 124.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        PageHeader(words("Plan", "Plan"))
+        GoalTabs(state, onSelect, onAdd = { onGoal(null) }, onEdit = { onGoal(it) })
         Surface(shape = RoundedCornerShape(28.dp), color = colors.surfaceContainerLow) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                Text(words("Zeit haben. Zeit nehmen.", "Make room. Make progress."), style = MaterialTheme.typography.titleLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Legend(colors.secondaryContainer, words("Verfügbar", "Available")); Legend(colors.primary, words("Dein Übeziel", "Practice goal"))
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Bottom) {
-                    (0..6).forEach { i ->
-                        val window = windows[i]
-                        val dayLabel = dayName(i)
-                        val goal = state.goals[i]
-                        val total = state.practiceGoals.sumOf { it.dayTargets[i] }
-                        val spoken = words("$dayLabel, $goal Minuten Ziel, ${window.minutes} Minuten verfügbar", "$dayLabel, $goal minutes target, ${window.minutes} minutes available")
-                        val availableHeight = (window.minutes / maxAvailable * 128).coerceAtLeast(6f)
-                        Column(Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable(onClick = tap({ selected = i }))
-                            .padding(vertical = 8.dp).semantics { contentDescription = spoken }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text(if (goal == 0) "–" else "$goal", style = MaterialTheme.typography.labelMedium, color = if (total > window.minutes) colors.error else colors.primary)
-                            Box(Modifier.height(128.dp).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
-                                Box(Modifier.width(27.dp).height(availableHeight.dp).clip(CircleShape).background(colors.secondaryContainer))
-                                if (goal > 0) Box(Modifier.width(27.dp).height((goal / maxAvailable * 128).coerceIn(6f, 128f).dp).clip(CircleShape).background(colors.primary))
-                            }
-                            Surface(color = if (stats.today.dayOfWeek.value == i + 1) colors.primary else androidx.compose.ui.graphics.Color.Transparent, contentColor = if (stats.today.dayOfWeek.value == i + 1) colors.onPrimary else colors.onSurfaceVariant, shape = CircleShape) {
-                                Text(dayShort(i), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 5.dp, vertical = 7.dp))
-                            }
-                        }
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(if (active.goal.type == GoalType.WEEKLY) periodTitle(active) else words("Bis zum Termin", "Until the date"), style = MaterialTheme.typography.titleLarge)
+                        Text(goalSummary(active.goal, withReset = false), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                     }
+                    FilledTonalIconButton(onClick = { onGoal(active.goal) }) { Icon(Icons.Rounded.Edit, words("Ziel bearbeiten", "Edit goal"), Modifier.size(20.dp)) }
                 }
-                Text(words("Tippe auf einen Wochentag. Verschiebe dein Zeitfenster und wähle, wie viel davon du üben möchtest.", "Tap a weekday. Move your availability window and choose how much of it you want to practise."), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                Text(words("${active.done} von ${active.target} Min. geschafft", "${active.done} of ${active.target} min done"), style = MaterialTheme.typography.titleMedium, color = colors.primary)
+                LinearWavyProgressIndicator(progress = { if (active.target > 0) (active.done.toFloat() / active.target).coerceIn(0f, 1f) else 0f }, modifier = Modifier.fillMaxWidth(), color = colors.primary, trackColor = colors.outlineVariant, waveSpeed = 0.dp)
+                WeekPlanList(active, state.availability)
+                PlanHint(active)
             }
         }
-        Surface(shape = RoundedCornerShape(24.dp), color = colors.tertiaryContainer) {
-            Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(words("Ein Plan für alle deine Ziele.", "One schedule for all your goals."), style = MaterialTheme.typography.titleMedium)
-                Text(words("${allocated} Min. eingeplant · ${totalAvailable} Min. verfügbar pro Woche. Deine Zeitfenster gelten für alle Ziele gemeinsam.", "$allocated min planned · $totalAvailable min available per week. Availability is shared across all your goals."), style = MaterialTheme.typography.bodyMedium)
-                val names = (0..6).map { dayShort(it) }
-                val overbooked = (0..6).filter { i -> state.practiceGoals.sumOf { it.dayTargets[i] } > windows[i].minutes }
-                if (overbooked.isNotEmpty()) Text(words("An ${overbooked.joinToString { names[it] }} ist mehr geplant, als Zeit frei ist. Passe dort Ziele oder Zeitfenster an.", "${overbooked.joinToString { names[it] }}: planned practice exceeds your available time. Adjust the targets or availability."), style = MaterialTheme.typography.bodySmall, color = colors.error)
-                TextButton(onClick = onGoal) { Icon(Icons.Rounded.Add, null); Spacer(Modifier.width(8.dp)); Text(words("Übeziele verwalten", "Manage practice goals")) }
-            }
-        }
-        Surface(onClick = tap(onSettings), shape = RoundedCornerShape(24.dp), color = colors.secondaryContainer) {
-            Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.NotificationsActive, null)
-                Column(Modifier.weight(1f)) {
-                    Text(words("Dein smarter Übepartner", "Your smart practice companion"), style = MaterialTheme.typography.titleMedium)
-                    Text(if (state.reminders.enabled) words("Erinnerungen passen sich diesem Plan an.", "Reminders adapt to this plan.") else words("Aktiviere Erinnerungen in den Optionen.", "Enable reminders in Settings."), style = MaterialTheme.typography.bodySmall)
-                }
-                Icon(Icons.Rounded.ChevronRight, null)
-            }
-        }
-    }
-    if (weeklyEditor) WeeklyGoalSheet(state, onDismiss = { weeklyEditor = false }, onSave = { total, days -> onWeeklyPlan(total, days); weeklyEditor = false })
-    selected?.let { i -> DayPlanSheet(i, state.goals[i], windows[i], onDismiss = { selected = null }, onSave = { goal, window -> onDayPlan(i, goal, window); selected = null }) }
-}
 
-@Composable private fun Legend(color: androidx.compose.ui.graphics.Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) { Box(Modifier.size(10.dp).clip(CircleShape).background(color)); Text(label, style = MaterialTheme.typography.bodySmall) }
-}
-@Composable fun dayShort(i: Int) = if (LocalEnglish.current) listOf("M", "T", "W", "T", "F", "S", "S")[i] else listOf("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")[i]
-@Composable fun dayName(i: Int) = if (LocalEnglish.current) listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[i] else listOf("Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag")[i]
-
-@Composable
-fun DayPlanSheet(index: Int, initialGoal: Int, initialWindow: Availability, onDismiss: () -> Unit, onSave: (Int, Availability) -> Unit) {
-    var window by remember { mutableStateOf(initialWindow) }
-    var goal by remember { mutableIntStateOf(initialGoal) }
-    SheetColumn(onDismiss) {
-        SheetHeading(dayName(index), words("Erst die freie Zeit. Dann dein Übeziel.", "Your available time first. Your practice goal next."))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) { Text(words("Zeit zum Üben", "Time available"), style = MaterialTheme.typography.titleMedium); Text(words("Für alle deine Übeziele", "Shared by all your practice goals"), style = MaterialTheme.typography.bodySmall) }
-            val toggle = tap({ window = window.copy(enabled = !window.enabled); if (!window.enabled) goal = 0 })
-            Switch(checked = window.enabled, onCheckedChange = { toggle() })
-        }
-        if (window.enabled) {
-            AvailabilityEditor(window, goal) { next -> window = next; goal = min(goal, min(240, next.minutes)) }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                SuggestionChip(onClick = { window = Availability(16 * 60, 19 * 60); goal = min(goal, 180) }, label = { Text(words("Nach der Schule", "After school")) })
-                SuggestionChip(onClick = { window = Availability(10 * 60, 13 * 60); goal = min(goal, 180) }, label = { Text(words("Vormittags", "Morning")) })
+        val overbooked = overbookedDays(state, plans)
+        if (overbooked.isNotEmpty()) Surface(shape = RoundedCornerShape(20.dp), color = colors.errorContainer, contentColor = colors.onErrorContainer) {
+            Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(Icons.Rounded.WarningAmber, null)
+                Text(words("An ${overbooked.joinToString { dayShortPlain(it.dayOfWeek.value - 1, false) }} planen deine Ziele zusammen mehr ein, als du Zeit hast. Trag mehr Zeit ein oder senke ein Ziel.",
+                    "On ${overbooked.joinToString { dayShortPlain(it.dayOfWeek.value - 1, true) }} your goals together need more time than you have. Add free time or lower a goal."), style = MaterialTheme.typography.bodyMedium)
             }
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Text(words("Davon möchte ich üben", "Of that, I want to practise"), style = MaterialTheme.typography.titleMedium)
-            Text(if (goal == 0) words("Freier Tag", "Rest day") else "$goal min", style = MaterialTheme.typography.displayMedium, color = MaterialTheme.colorScheme.primary)
-            val maxTarget = min(240, window.minutes).coerceAtLeast(5)
-            HapticSlider(value = goal.toFloat(), onValueChange = { goal = ((it / 5).roundToInt() * 5).coerceAtMost(maxTarget) }, valueRange = 0f..maxTarget.toFloat(), steps = maxTarget / 5 - 1)
-            SuggestionChip(onClick = { goal = min(240, window.minutes) }, label = { Text(words("Ganzes Zeitfenster als Übezeit", "Use the whole window for practice")) })
-            Text(words("${window.minutes - goal} Minuten bleiben für andere Ziele, Pausen und alles andere.", "${window.minutes - goal} minutes remain for other goals, breaks and everything else."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else Text(words("Heute keine Zeit eingeplant. Dein Tagesziel ist 0 Minuten.", "No time planned today. Your daily target is 0 minutes."), style = MaterialTheme.typography.bodyMedium)
-        Button(onClick = { onSave(goal, window) }, modifier = Modifier.fillMaxWidth().height(58.dp)) { Icon(Icons.Rounded.Check, null); Spacer(Modifier.width(8.dp)); Text(words("Tagesplan speichern", "Save daily plan")) }
+        }
+
+        Surface(shape = RoundedCornerShape(28.dp), color = colors.surfaceContainerLow) {
+            Column(Modifier.padding(start = 18.dp, end = 8.dp, top = 18.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(words("Deine freie Zeit", "Your free time"), style = MaterialTheme.typography.titleLarge)
+                Text(words("Gilt für alle Ziele. Nur in dieser Zeit wird geplant und erinnert. ${availabilitySummary(state.availability)}.",
+                    "Shared by all goals. Planning and reminders only use this time. ${availabilitySummary(state.availability)}."), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(end = 10.dp))
+                WeekAvailabilityEditor(state.availability, onAvailability, highlightToday = true)
+            }
+        }
     }
 }
 
 @Composable
-fun WeeklyGoalSheet(state: CadenceState, onDismiss: () -> Unit, onSave: (Int, Set<Int>) -> Unit) {
-    var days by remember { mutableStateOf((0..6).filter { state.goals[it] > 0 }.toSet()) }
-    var total by remember { mutableStateOf(state.goals.sum().toString()) }
-    val capacity = days.sumOf { (state.reminders.windows[it].end - state.reminders.windows[it].start).coerceAtMost(240) }
-    val minimum = days.size * 5
-    val value = total.toIntOrNull() ?: 0
-    SheetColumn(onDismiss) {
-        SheetHeading(words("Deine Woche. Einfach geplant.", "Your week. Simply planned."), words("Wähle ein Gesamtziel und deine Übetage. Cadence verteilt die Minuten für dich.", "Choose one weekly target and your practice days. Cadence shares the minutes for you."))
-        androidx.compose.material3.OutlinedTextField(total, { if (it.length <= 4 && it.all(Char::isDigit)) total = it }, label = { Text(words("Minuten pro Woche", "Minutes per week")) }, singleLine = true,
-            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp))
-        if (days.isNotEmpty()) HapticSlider(value.toFloat().coerceIn(minimum.toFloat(), capacity.toFloat()), { total = (it / 5).roundToInt().times(5).coerceIn(minimum, capacity).toString() }, minimum.toFloat()..capacity.toFloat(), ((capacity - minimum) / 5 - 1).coerceAtLeast(0))
-        Text(words("An welchen Tagen möchtest du üben?", "Which days would you like to practise?"), style = MaterialTheme.typography.titleMedium)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) { (0..6).forEach { i -> FilterChip(selected = i in days, onClick = {
-            days = if (i in days) days - i else days + i
-            val cap = days.sumOf { d -> (state.reminders.windows[d].end - state.reminders.windows[d].start).coerceAtMost(240) }
-            if (days.isNotEmpty()) total = value.coerceIn(days.size * 5, cap).toString()
-        }, label = { Text(dayShort(i)) }) } }
-        if (days.isNotEmpty() && value in minimum..capacity) {
-            val preview = distributeWeeklyGoal(value, days, state.reminders.windows)
-            Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
-                Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    days.sorted().forEach { i -> Row(Modifier.fillMaxWidth()) { Text(dayName(i), Modifier.weight(1f)); Text("${preview[i]} min", style = MaterialTheme.typography.titleMedium) } }
-                }
-            }
-        } else Text(words("Wähle mindestens einen Tag und ein Ziel zwischen $minimum und $capacity Minuten.", "Choose at least one day and a target between $minimum and $capacity minutes."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-        Button(onClick = { onSave(value, days) }, enabled = days.isNotEmpty() && value in minimum..capacity, modifier = Modifier.fillMaxWidth().height(58.dp)) { Text(words("Wochenplan übernehmen", "Apply weekly plan")) }
-    }
+fun periodTitle(plan: GoalPlan): String {
+    val goal = plan.goal
+    if (goal.type == GoalType.DEADLINE) return words("Bis zum Termin", "Until the date")
+    if (goal.resetDay == 0 && goal.resetMinute == 0) return words("Diese Woche", "This week")
+    val end = plan.period.end
+    return words("Bis ${dayShort(end.dayOfWeek.value - 1)} ${clock(end.hour * 60 + end.minute)}", "Until ${dayShort(end.dayOfWeek.value - 1)} ${clock(end.hour * 60 + end.minute)}")
 }
 
-@Composable
-fun AvailabilityEditor(window: Availability, goal: Int = 0, onChange: (Availability) -> Unit) {
-    val context = LocalContext.current
-    val colors = MaterialTheme.colorScheme
-    val feedback = LocalHapticFeedback.current
-    val haptics = LocalHapticsEnabled.current
-    val latest by rememberUpdatedState(window)
-    val callback by rememberUpdatedState(onChange)
-    var base by remember { mutableStateOf(window) }
-    var delta by remember { mutableFloatStateOf(0f) }
-    var mode by remember { mutableIntStateOf(0) }
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            OutlinedButton(onClick = { TimePickerDialog(context, { _, h, m -> val start = (h * 60 + m).coerceIn(360, latest.end - 30); callback(latest.copy(start = start)) }, window.start / 60, window.start % 60, true).show() }) { Text(clock(window.start)) }
-            Text(words("bis", "to"), modifier = Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.bodySmall)
-            OutlinedButton(onClick = { TimePickerDialog(context, { _, h, m -> val end = (h * 60 + m).coerceIn(latest.start + 30, 1380); callback(latest.copy(end = end)) }, window.end / 60, window.end % 60, true).show() }) { Text(clock(window.end)) }
-        }
-        Canvas(Modifier.fillMaxWidth().height(70.dp).testTag("availability-timeline").pointerInput(haptics) {
-            detectHorizontalDragGestures(onDragStart = { p ->
-                base = latest; delta = 0f
-                val startX = (base.start - 360f) / 1020 * size.width
-                val endX = (base.end - 360f) / 1020 * size.width
-                mode = when { abs(p.x - startX) < 24.dp.toPx() -> 0; abs(p.x - endX) < 24.dp.toPx() -> 1; p.x in startX..endX -> 2; abs(p.x - startX) < abs(p.x - endX) -> 0; else -> 1 }
-            }, onHorizontalDrag = { change, amount ->
-                change.consume(); delta += amount
-                val shift = (delta / size.width * 1020 / 15).roundToInt() * 15
-                val next = when (mode) {
-                    0 -> base.copy(start = (base.start + shift).coerceIn(360, base.end - 30))
-                    1 -> base.copy(end = (base.end + shift).coerceIn(base.start + 30, 1380))
-                    else -> { val start = (base.start + shift).coerceIn(360, 1380 - base.minutes); base.copy(start = start, end = start + base.minutes) }
-                }
-                if (next != latest) { if (haptics) feedback.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick); callback(next) }
-            })
-        }) {
-            val y = size.height / 2
-            val trackHeight = 32.dp.toPx()
-            drawRoundRect(colors.surfaceContainerHighest, topLeft = Offset(0f, y - trackHeight / 2), size = Size(size.width, trackHeight), cornerRadius = CornerRadius(trackHeight / 2))
-            (0..17).forEach { tick -> val x = tick / 17f * size.width; drawLine(colors.outlineVariant, Offset(x, y + trackHeight / 2 + 5.dp.toPx()), Offset(x, y + trackHeight / 2 + 10.dp.toPx()), strokeWidth = 1.dp.toPx()) }
-            val x1 = (window.start - 360f) / 1020 * size.width
-            val x2 = (window.end - 360f) / 1020 * size.width
-            drawRoundRect(colors.secondaryContainer, Offset(x1, y - trackHeight / 2), Size(x2 - x1, trackHeight), CornerRadius(trackHeight / 2))
-            if (goal > 0) drawRoundRect(colors.primary, Offset(x1, y - trackHeight / 2), Size(((x2 - x1) * goal / window.minutes).coerceAtLeast(2f), trackHeight), CornerRadius(trackHeight / 2))
-            listOf(x1, x2).forEach { x -> drawCircle(colors.secondary, 12.dp.toPx(), Offset(x, y)); drawLine(colors.onSecondary, Offset(x, y - 5.dp.toPx()), Offset(x, y + 5.dp.toPx()), 2.dp.toPx()) }
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { listOf("06:00", "12:00", "18:00", "23:00").forEach { Text(it, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant) } }
-        Text(words("Ziehe die Griffe oder verschiebe den ganzen Bereich. Tippe auf die Uhrzeiten für eine genaue Eingabe.", "Drag either handle or slide the whole window. Tap the times for precise input."), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+/** Days this calendar week where the goals together plan more than the free time allows. */
+fun overbookedDays(state: CadenceState, plans: List<GoalPlan>): List<LocalDate> {
+    val today = LocalDate.now()
+    return (0..6L).map { today.with(java.time.DayOfWeek.MONDAY).plusDays(it) }.filter { date ->
+        date >= today && plans.sumOf { p -> p.days.firstOrNull { it.date == date }?.planned ?: 0 } > state.availability[date.dayOfWeek.value - 1].sumOf { it.minutes }
     }
 }

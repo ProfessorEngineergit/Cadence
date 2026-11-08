@@ -5,89 +5,109 @@ import org.junit.Test
 import java.time.*
 
 class ReminderEngineTest {
-    private val zone = ZoneId.of("Europe/Berlin")
-    private val sunday = LocalDate.of(2026, 11, 8)
-    private val now = sunday.atTime(16, 0).atZone(zone)
-    private fun state() = CadenceState(language = AppLanguage.DE, reminders = ReminderSettings(enabled = true))
-    private fun session(day: LocalDate, minutes: Int, hour: Int = 12, goal: String = "primary", timed: Boolean = true) = PracticeSession(startedAt = day.atTime(hour, 0).atZone(zone).toInstant().toEpochMilli(), durationSeconds = minutes * 60L, goalId = goal, recordedWithTimer = timed)
-    private fun decision(s: CadenceState = state(), at: ZonedDateTime = now, delivered: ReminderDelivery = ReminderDelivery()) = ReminderEngine.evaluateAll(s, at, delivered)
+    private val zone = ZoneId.systemDefault()
+    private val monday = LocalDate.of(2026, 11, 2)
+    private fun at(day: LocalDate, hour: Int, minute: Int = 0): ZonedDateTime = day.atTime(hour, minute).atZone(zone)
+    private fun ms(t: ZonedDateTime) = t.toInstant().toEpochMilli()
+    private fun session(day: LocalDate, minutes: Int, hour: Int = 17, minute: Int = 0, timed: Boolean = true, goal: String = "primary") =
+        PracticeSession(startedAt = ms(at(day, hour, minute)), durationSeconds = minutes * 60L, goalId = goal, recordedWithTimer = timed)
+    private val evenings = List(7) { listOf(TimeSlot(17 * 60, 19 * 60)) }
+    private fun state(sessions: List<PracticeSession> = emptyList(), availability: List<List<TimeSlot>> = evenings, language: AppLanguage = AppLanguage.DE, goals: List<PracticeGoal> = listOf(PracticeGoal("primary", "Klavier", minutes = 70, createdOn = "2026-10-01"))) =
+        CadenceState(sessions = sessions, practiceGoals = goals, availability = availability, reminders = ReminderSettings(enabled = true), language = language, activeGoalId = goals.first().id)
 
-    @Test fun remindsInsideAvailableHoursWithRealMissingPercentage() {
-        val result = decision(state().copy(sessions = listOf(session(sunday.minusDays(2), 70)))).notification!!
-        assertTrue(result.body.contains("30 %"))
-        assertTrue(result.body.contains("30 Min."))
-        assertTrue(result.suggestion in 1..25)
+    @Test fun firstReminderComesWhenFreeTimeStartsWithFollowUpLater() {
+        val c = ReminderEngine.candidates(state(), monday, at(monday, 9))
+        assertEquals(listOf(at(monday, 17) to ReminderKind.START, at(monday, 18) to ReminderKind.FOLLOW_UP), c.map { it.at to it.kind })
+        assertEquals(at(monday, 17), ReminderEngine.next(state(), at(monday, 9), ReminderDelivery())!!.at)
     }
-    @Test fun neverRemindsOutsideWindowOrWhenDisabled() {
-        assertNull(decision(at = now.withHour(23)).notification)
-        assertNull(decision(state().copy(reminders = ReminderSettings(enabled = false))).notification)
+
+    @Test fun dueOnlyWithinToleranceAndNotTwice() {
+        val s = state()
+        val copy = ReminderEngine.due(s, at(monday, 17, 2), ReminderDelivery())!!
+        assertEquals("Klavier: heute 10 Minuten", copy.title)
+        assertTrue(copy.body.contains("19:00"))
+        assertNull(ReminderEngine.due(s, at(monday, 17, 40), ReminderDelivery()))
+        val sent = ReminderEngine.record(ReminderDelivery(), copy, at(monday, 17, 2))
+        assertNull(ReminderEngine.due(s, at(monday, 17, 5), sent))
+        assertEquals(ReminderKind.FOLLOW_UP, ReminderEngine.next(s, at(monday, 17, 3), sent)!!.kind)
     }
-    @Test fun stopsWhenWeeklyGoalIsMet() {
-        assertNull(decision(state().copy(sessions = listOf(session(sunday.minusDays(1), 100)))).notification)
+
+    @Test fun nothingWhenDoneTimerRunningOrJustPractised() {
+        assertNull(ReminderEngine.due(state(listOf(session(monday, 15, hour = 8))), at(monday, 17), ReminderDelivery()))
+        assertNull(ReminderEngine.due(state().copy(timer = PracticeTimer(1, 1, focus = "x", targetMinutes = 10)), at(monday, 17), ReminderDelivery()))
+        // Five minutes of practice that ended twenty minutes ago: still something left, but give it an hour.
+        assertNull(ReminderEngine.due(state(listOf(session(monday, 5, hour = 16, minute = 35))), at(monday, 17), ReminderDelivery()))
     }
-    @Test fun activeAndPausedTimersBothSuppressReminders() {
-        val active = PracticeTimer(10, 10, focus = "Freies Üben", targetMinutes = 25)
-        assertNull(decision(state().copy(timer = active)).notification)
-        assertNull(decision(state().copy(timer = active.copy(runningSince = null))).notification)
+
+    @Test fun restDaysAreQuietAndNextReminderMovesToTheNextFreeDay() {
+        val slots = List(7) { if (it == 0) emptyList() else listOf(TimeSlot(17 * 60, 18 * 60)) }
+        assertTrue(ReminderEngine.candidates(state(availability = slots), monday, at(monday, 9)).isEmpty())
+        assertEquals(at(monday.plusDays(1), 17), ReminderEngine.next(state(availability = slots), at(monday, 9), ReminderDelivery())!!.at)
     }
-    @Test fun recentPracticeForAnotherGoalAlsoSuppressesReminders() {
-        val s = state().copy(sessions = listOf(session(sunday, 20, 15, goal = "other")))
-        assertNull(decision(s).notification)
+
+    @Test fun aheadDayGetsOnePraiseNoteInsteadOfAReminder() {
+        val tuesday = monday.plusDays(1)
+        val s = state(listOf(session(monday, 30)))
+        val c = ReminderEngine.candidates(s, tuesday, at(tuesday, 9))
+        assertEquals(listOf(ReminderKind.PRAISE), c.map { it.kind })
+        val copy = ReminderEngine.due(s, at(tuesday, 17), ReminderDelivery())!!
+        assertEquals("Heute ist frei", copy.title)
+        assertTrue(copy.body.contains("30 Minuten"))
+        val after = ReminderEngine.record(ReminderDelivery(), copy, at(tuesday, 17))
+        assertNull(ReminderEngine.due(s, at(tuesday, 17, 1), after))
+        assertNull(ReminderEngine.due(s.copy(reminders = s.reminders.copy(praise = false)), at(tuesday, 17), ReminderDelivery()))
     }
-    @Test fun dailyCapIsSharedAndCooldownIsThreeHours() {
-        val timestamp = now.minusHours(1).toInstant().toEpochMilli()
-        assertNull(decision(delivered = ReminderDelivery(lastSent = timestamp, date = sunday.toString(), count = 1)).notification)
-        assertNull(decision(delivered = ReminderDelivery(date = sunday.toString(), count = 2)).notification)
-        assertNotNull(decision(delivered = ReminderDelivery(date = sunday.minusDays(1).toString(), count = 2)).notification)
+
+    @Test fun snoozeAndNotTodayAreHonoured() {
+        val s = state()
+        val snooze = ReminderDelivery(snoozeUntil = ms(at(monday, 17, 30)))
+        assertEquals(ReminderKind.SNOOZED, ReminderEngine.next(s, at(monday, 17, 5), snooze)!!.kind)
+        assertNotNull(ReminderEngine.due(s, at(monday, 17, 31), snooze.copy(date = monday.toString(), count = 2)))
+        val skip = ReminderDelivery(skipDate = monday.toString())
+        assertNull(ReminderEngine.due(s, at(monday, 17), skip))
+        assertEquals(monday.plusDays(1), ReminderEngine.next(s, at(monday, 9), skip)!!.at.toLocalDate())
     }
-    @Test fun snoozeAndRestDayActionsAreHonoured() {
-        val stamp = now.toInstant().toEpochMilli()
-        assertNull(decision(delivered = ReminderDelivery(snoozeUntil = stamp + 1000)).notification)
-        assertNull(decision(delivered = ReminderDelivery(skipUntil = stamp + 1000)).notification)
-        assertNotNull(decision(delivered = ReminderDelivery(snoozeUntil = stamp - 1000, date = sunday.toString(), count = 2)).notification)
+
+    @Test fun ignoredRemindersReduceToOnePerDay() {
+        val sent = (1..3).map { monday.plusDays(it.toLong()).toString() }
+        val friday = monday.plusDays(4)
+        val delivery = ReminderDelivery(sentDates = sent, date = friday.toString(), count = 1, lastSent = ms(at(friday, 17)))
+        assertEquals(3, ReminderEngine.ignoredDays(state(), delivery, friday))
+        assertEquals(1, ReminderEngine.dailyLimit(state(), delivery, friday))
+        assertNull(ReminderEngine.due(state(), at(friday, 18), delivery))
+        // Practising once resets it.
+        assertEquals(0, ReminderEngine.ignoredDays(state(listOf(session(monday.plusDays(3), 10))), delivery, friday))
     }
-    @Test fun extraPracticeYesterdayGetsEncouragingCopyAndCountsTowardToday() {
-        val result = decision(state().copy(sessions = listOf(session(sunday.minusDays(1), 45)))).notification!!
-        assertTrue(result.title.contains("Gestern stark"))
-        assertTrue(result.body.contains("45 Minuten"))
+
+    @Test fun learnsUsualStartFromTimedSessionsOnly() {
+        val wed = monday.plusDays(2)
+        val history = listOf(session(monday.minusDays(7), 10, 18, 30), session(monday.minusDays(6), 10, 18, 15), session(monday.minusDays(5), 10, 18, 45), session(monday.minusDays(4), 10, 9, timed = false))
+        val c = ReminderEngine.candidates(state(history), wed, at(wed, 9))
+        assertEquals(at(wed, 18, 30), c.first().at)
     }
-    @Test fun aheadOfPlanMeansNoPressureOnFollowingPracticeDay() {
-        val day = LocalDate.of(2026, 11, 4) // Wednesday's 30-minute target
-        val s = state().copy(sessions = listOf(session(day.minusDays(1), 40)))
-        assertNull(decision(s, day.atTime(17, 0).atZone(zone)).notification)
+
+    @Test fun deadlineCopyMentionsTheDate() {
+        val talk = PracticeGoal("talk", "Referat", GoalKind.SPEECH, GoalType.DEADLINE, minutes = 60, deadline = monday.plusDays(1).toString(), createdOn = monday.toString())
+        val copy = ReminderEngine.due(state(goals = listOf(talk)), at(monday, 17), ReminderDelivery())!!
+        assertTrue(copy.body, copy.body.startsWith("Morgen ist es so weit"))
+        assertEquals("talk", copy.goalId)
     }
-    @Test fun restDaysAreQuietUnlessCheckInIsClose() {
-        val monday = sunday.minusDays(6)
-        assertNull(decision(at = monday.atTime(17, 0).atZone(zone)).notification)
+
+    @Test fun severalGoalsShareOneReminder() {
+        val goals = listOf(PracticeGoal("primary", "Klavier", minutes = 70, createdOn = "2026-10-01"), PracticeGoal("b", "Gitarre", minutes = 140, createdOn = "2026-10-01"))
+        val copy = ReminderEngine.due(state(goals = goals), at(monday, 17), ReminderDelivery())!!
+        assertTrue(copy.title, copy.title.contains("Klavier 10 Min.") && copy.title.contains("Gitarre 20 Min."))
     }
-    @Test fun learnsMedianPracticeTimeOnlyFromTimerSessions() {
-        val day = sunday.minusDays(4)
-        val s = state().copy(sessions = listOf(session(day, 10, 18), session(day.minusDays(1), 10, 17), session(day.minusDays(2), 10, 19), session(day.minusDays(3), 10, 12, timed = false)))
-        assertEquals(18 * 60, ReminderEngine.preferredMinute(s, day, Availability(16 * 60, 20 * 60), zone))
+
+    @Test fun englishCopy() {
+        val copy = ReminderEngine.due(state(language = AppLanguage.EN), at(monday, 17), ReminderDelivery())!!
+        assertEquals("Klavier: 10 minutes today", copy.title)
+        assertFalse(copy.body.contains("Zeit"))
     }
-    @Test fun goalsHaveIndependentProgressAndClosestDeadlineWins() {
-        val exam = PracticeGoal("exam", "Mathetest", GoalKind.STUDY, dayTargets = List(7) { 15 }, deadline = sunday.plusDays(1).toString(), totalTarget = 200)
-        val s = state().copy(practiceGoals = state().practiceGoals + exam, sessions = listOf(session(sunday.minusDays(1), 100)))
-        val result = decision(s).notification!!
-        assertTrue(result.title.startsWith("Mathetest"))
-        assertTrue(result.body.contains("100 %"))
-        assertEquals(0, s.copy(activeGoalId = "exam").selectedSessions.size)
-    }
-    @Test fun completedAndExpiredDatedGoalsDoNotNotify() {
-        val goal = PracticeGoal("exam", "Test", GoalKind.STUDY, dayTargets = List(7) { 15 }, deadline = sunday.toString(), totalTarget = 30)
-        val s = state().copy(practiceGoals = listOf(goal), activeGoalId = "exam", sessions = listOf(session(sunday.minusDays(1), 30, goal = "exam")))
-        assertNull(decision(s).notification)
-        assertNull(decision(s.copy(sessions = emptyList(), practiceGoals = listOf(goal.copy(deadline = sunday.minusDays(1).toString())))).notification)
-    }
-    @Test fun englishRemindersContainEnglishCopy() {
-        val result = decision(state().copy(language = AppLanguage.EN)).notification!!
-        assertTrue(result.body.contains("weekly goal"))
-        assertFalse(result.body.contains("Minuten"))
-    }
-    @Test fun datedGoalUsesRemainingPaceRatherThanStoppingAtTooSmallDailyTarget() {
-        val monday = LocalDate.of(2026, 11, 9)
-        val goal = PracticeGoal("exam", "Test", GoalKind.STUDY, List(7) { 20 }, monday.plusDays(2).toString(), 240)
-        val s = state().copy(practiceGoals = listOf(goal), activeGoalId = "exam", sessions = listOf(session(monday, 20, 12, "exam")))
-        assertNotNull(decision(s, monday.atTime(19, 0).atZone(zone)).notification)
+
+    @Test fun disabledMeansNothing() {
+        val s = state().copy(reminders = ReminderSettings(enabled = false))
+        assertNull(ReminderEngine.next(s, at(monday, 9), ReminderDelivery()))
+        assertNull(ReminderEngine.due(s, at(monday, 17), ReminderDelivery()))
     }
 }

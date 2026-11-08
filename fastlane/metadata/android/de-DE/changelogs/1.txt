@@ -1,1 +1,1 @@
-Erste Android-Version mit mehreren Zielen, Wochenplanung, adaptiven lokalen Erinnerungen, Live-Timer, Widget, Deutsch/Englisch und CSV-Export.
+Erste Version: Ziele pro Woche oder bis zu einem Termin, freie Zeiten pro Tag, ein Plan, der sich jeden Tag anpasst, Erinnerungen zu Beginn deiner freien Zeit, Timer mit Fortschritt in der Benachrichtigung, Verlauf mit Kalender, Widget in Hell und Dunkel.

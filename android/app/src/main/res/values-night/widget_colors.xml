@@ -1,0 +1,9 @@
+<resources>
+    <color name="widget_bg">#2B2531</color>
+    <color name="widget_text">#EEDCFF</color>
+    <color name="widget_subtext">#CDBFD6</color>
+    <color name="widget_button_bg">#4B3A5C</color>
+    <color name="widget_button_text">#F3EAFB</color>
+    <color name="widget_progress">#FFB4A3</color>
+    <color name="widget_track">#4C4449</color>
+</resources>

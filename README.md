@@ -1,16 +1,17 @@
 # Cadence
 
-Practice time for music, studying, presentations and new skills.
+Practise regularly without keeping it all in your head: an instrument, a talk, an exam or any other skill.
 
-Cadence helps you set a realistic practice plan, track sessions and see what remains until your goal. Keep an ongoing piano routine alongside a presentation or test with a deadline.
+You set a goal, either a weekly amount (100 minutes of piano a week) or a total by a date (two hours before Thursday's talk at 10:00), and you add the times you actually have free. Cadence spreads the goal over that free time and shows each day how much is due.
 
-- Separate goals, session histories and progress.
-- A weekly total shared across selected days, with precise daily availability and targets when needed.
-- A persistent timer with pause/resume, manual entries and notes.
-- Local reminders that adapt to progress, recent practice and available time.
-- An ongoing timer notification with pause and finish actions, plus Android 16 Live Update support where available.
-- A home-screen widget, completion chime and optional haptic feedback.
-- German and English, light/dark themes, device colours and CSV export.
+- **The plan adapts.** Extra practice makes the next days lighter, sometimes a day becomes free. Missed days are spread over what's left instead of piling onto one day.
+- **Weeks can start at a lesson.** A weekly goal can reset at, say, Monday 16:00; practice on Monday before the lesson still counts for the week before.
+- **Reminders when it fits.** The first reminder comes when a free slot starts, or at the time you usually begin once Cadence has seen a few timed sessions. Later slots get their own reminder, the last one a single follow-up while there is still enough time. Nothing is sent once today is done, on days without free time, while a timer runs or within an hour of practice. After three ignored days it drops to one a day until you practise again. On a day you've earned off, an optional note says so.
+- **Timer** that survives closing the app, with progress towards today's goal in its notification (Android 16 progress style, Live Update requested where the system supports it).
+- **Several goals** as tabs, each with its own plan; free time is shared and overbooked days are flagged.
+- **History** with stats, an 8-week chart and a month calendar. The streak skips days without free time, so planned rest never breaks it.
+- **Widget** in four sizes that follows the app's light or dark theme.
+- German and English, light/dark/wallpaper colours, haptics, completion chime, notes and CSV export.
 
 No account, ads or remote backend. Android system backup may include app data when enabled.
 
