@@ -23,6 +23,9 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import kotlin.math.PI
@@ -62,7 +65,7 @@ private class World(width: Float, height: Float, var top: Float) {
     init {
         // Large enough to rise above the glass, few enough to settle into a stable pile.
         // The clock goes in last so it rests on top of the pile at first.
-        val specs = listOf(Kind.BALL to 0.17f, Kind.CHECK to 0.15f, Kind.BALL to 0.12f, Kind.NOTE to 0.18f, Kind.CALENDAR to 0.22f, Kind.CLOCK to 0.38f)
+        val specs = listOf(Kind.BALL to 0.16f, Kind.CHECK to 0.14f, Kind.BALL to 0.11f, Kind.NOTE to 0.16f, Kind.CALENDAR to 0.2f, Kind.CLOCK to 0.46f)
         // Lay them out just above the floor, left to right, so they drop a little and settle.
         var cx = 0f
         var rowBottom = height
@@ -77,11 +80,37 @@ private class World(width: Float, height: Float, var top: Float) {
         }
     }
 
+    /** The object held by a finger, pulled towards [target] by a soft spring so it keeps its weight. */
+    var grabbed: Body? = null
+    var target = Offset.Zero
+
+    fun pick(p: Offset): Body? = bodies.lastOrNull { hypot(it.x - p.x, it.y - p.y) <= it.r * 1.05f }
+
+    fun grab(b: Body, p: Offset) { grabbed = b; target = p; bodies.remove(b); bodies.add(b) }
+
+    fun release() {
+        grabbed?.let { b -> val speed = hypot(b.vx, b.vy); val max = h * 2.5f; if (speed > max) { b.vx *= max / speed; b.vy *= max / speed } }
+        grabbed = null
+    }
+
+    /** Drops a new object in from above the ceiling. */
+    fun spawn(kind: Kind, size: Float, delay: Int) {
+        val r = w * size
+        val x = (w * (0.15f + ((bodies.size * 0.31f) % 0.7f))).coerceIn(r, w - r)
+        bodies += Body(kind, r, x, top - r - delay * w * 0.35f, bodies.size).also { it.vy = h * 0.4f }
+    }
+
     fun step(dt: Float, gx: Float, gy: Float) {
         impact = 0f
         val substeps = 4
         val h2 = dt / substeps
         repeat(substeps) {
+            grabbed?.let { b ->
+                // A spring with damping: the object follows the finger but lags and sags under gravity.
+                val ty = target.y.coerceAtLeast(top + b.r)
+                b.vx += ((target.x - b.x) * 120f - b.vx * 16f) * h2
+                b.vy += ((ty - b.y) * 120f - b.vy * 16f) * h2
+            }
             for (b in bodies) {
                 b.vx += gx * h2; b.vy += gy * h2
                 val damping = 1f - 0.35f * h2
@@ -136,7 +165,7 @@ private class World(width: Float, height: Float, var top: Float) {
     }
 
     /** True when nothing moves noticeably any more. */
-    fun resting(): Boolean = bodies.all { it.entered && hypot(it.vx, it.vy) < w * 0.06f }
+    fun resting(): Boolean = grabbed == null && bodies.all { it.entered && hypot(it.vx, it.vy) < w * 0.06f }
 
     /** A small hop for every object, against gravity and slightly sideways. */
     fun nudge(gx: Float, gy: Float, strength: Float) {
@@ -227,8 +256,18 @@ fun IntroScene(step: Int, fill: Float, modifier: Modifier = Modifier, ceiling: a
             }
         }
     }
-    // Moving to another step gives everything a little hop.
-    LaunchedEffect(step) { world?.let { w -> if (motion && step > 0) { w.nudge(gravity.x, gravity.y, w.h * 0.9f); wake++ } } }
+    // "Let's go" drops more objects onto the pile; later steps give everything a little hop.
+    var lastStep by remember { mutableIntStateOf(step) }
+    LaunchedEffect(step) {
+        val w = world
+        if (w != null && motion && step != lastStep) {
+            if (lastStep == 0 && step == 1 && w.bodies.size < 10) {
+                listOf(Kind.BALL to 0.10f, Kind.NOTE to 0.12f, Kind.CHECK to 0.10f, Kind.BALL to 0.08f).forEachIndexed { i, (kind, size) -> w.spawn(kind, size, i) }
+            } else w.nudge(gravity.x, gravity.y, w.h * 0.7f)
+            wake++
+        }
+        lastStep = step
+    }
 
     val coral = colors.primary
     val lavender = if (dark) Color(0xFFB9A3D0) else Color(0xFFCDB9E6)
@@ -238,7 +277,26 @@ fun IntroScene(step: Int, fill: Float, modifier: Modifier = Modifier, ceiling: a
     val balls = listOf(mint, sand, lavender)
     val shadowAlpha = if (dark) 0.45f else 0.16f
 
-    Box(modifier.onSizeChanged { size ->
+    Box(modifier.pointerInput(world, motion) {
+        val w = world ?: return@pointerInput
+        if (!motion) return@pointerInput
+        // Pick up any object with a finger; it hangs from the finger with its weight and drops when let go.
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            val body = w.pick(down.position) ?: return@awaitEachGesture
+            down.consume()
+            w.grab(body, down.position); wake++
+            if (haptics) haptic.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                if (!change.pressed) break
+                w.target = change.position
+                change.consume()
+            }
+            w.release()
+        }
+    }.onSizeChanged { size ->
         if (size.width > 0 && size.height > 0) {
             val current = world
             if (current == null) world = World(size.width.toFloat(), size.height.toFloat(), ceilingPx)

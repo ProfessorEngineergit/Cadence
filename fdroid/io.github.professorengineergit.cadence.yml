@@ -1,0 +1,25 @@
+# Metadata for fdroiddata (https://gitlab.com/fdroid/fdroiddata), file metadata/io.github.professorengineergit.cadence.yml
+Categories:
+  - Time
+License: MIT
+AuthorName: ProfessorEngineergit
+SourceCode: https://github.com/ProfessorEngineergit/Cadence
+IssueTracker: https://github.com/ProfessorEngineergit/Cadence/issues
+
+AutoName: Cadence
+
+RepoType: git
+Repo: https://github.com/ProfessorEngineergit/Cadence.git
+
+Builds:
+  - versionName: 1.0.0
+    versionCode: 1
+    commit: v1.0.0
+    subdir: android/app
+    gradle:
+      - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 1.0.0
+CurrentVersionCode: 1

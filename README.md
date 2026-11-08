@@ -15,6 +15,12 @@
   <img alt="Jetpack Compose" src="https://img.shields.io/badge/Jetpack%20Compose-Material%203%20Expressive-4285F4?logo=jetpackcompose&logoColor=white">
   <img alt="Offline" src="https://img.shields.io/badge/No%20account-no%20tracking-A83D2C">
   <img alt="German and English" src="https://img.shields.io/badge/Languages-DE%20%7C%20EN-655078">
+  <a href="LICENSE"><img alt="MIT licence" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
+</p>
+
+<p align="center">
+  <a href="https://f-droid.org/packages/io.github.professorengineergit.cadence/"><img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" height="80" alt="Get it on F-Droid"></a><br>
+  <sub>The F-Droid listing appears once the app has been accepted there.</sub>
 </p>
 
 <p align="center">
@@ -62,3 +68,11 @@ The app supports Android 10 and newer and targets Android 16. Release builds are
 - `android/`: native Android app and tests.
 - `Übezeit-Tracker/` and `Übezeit-Tracker.xcodeproj/`: preserved original iOS project.
 - `fastlane/metadata/android/`: English and German store descriptions and screenshots.
+
+## F-Droid
+
+Store texts and screenshots live in `fastlane/metadata/android/`, the build recipe for F-Droid in `fdroid/`. See [F-Droid submission steps](FDROID.md).
+
+## Licence
+
+[MIT](LICENSE). The Exo 2 font in the preserved iOS project is licensed under the SIL Open Font License.

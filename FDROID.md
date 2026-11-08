@@ -2,9 +2,9 @@
 
 The public source repository and bilingual Fastlane descriptions are prepared. Submission is a source-build review, not an APK upload.
 
-1. Select a free-software licence and add its full text as `LICENSE`. Check compatibility with any third-party code and assets. This decision is still open.
+1. Licence: MIT, see `LICENSE`. The Exo 2 font in the preserved iOS project is under the SIL Open Font License; the Android app does not ship it.
 2. Make a release commit and add the matching tag, for example `v1.0.0` for `versionName = "1.0.0"` and `versionCode = 1`.
-3. Fork [fdroiddata](https://gitlab.com/fdroid/fdroiddata), add `metadata/io.github.professorengineergit.cadence.yml`, and submit a merge request. Alternatively, start an inclusion request through F-Droid's request-for-packaging process.
+3. Fork [fdroiddata](https://gitlab.com/fdroid/fdroiddata), copy `fdroid/io.github.professorengineergit.cadence.yml` to `metadata/io.github.professorengineergit.cadence.yml`, and submit a merge request. Alternatively, start an inclusion request through F-Droid's request-for-packaging process.
 4. Point the build at the `android` subdirectory and its release variant. Run the F-Droid metadata lint and build checks before submitting.
 
 Build details:

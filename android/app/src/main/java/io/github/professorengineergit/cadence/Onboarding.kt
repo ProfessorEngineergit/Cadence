@@ -65,6 +65,13 @@ fun Onboarding(model: PracticeViewModel) {
     var reminders by rememberSaveable { mutableStateOf(true) }
     val scroll = rememberScrollState()
     LaunchedEffect(step) { scroll.scrollTo(0) }
+    // Setup stays upright: tilting the phone moves the objects, not the layout.
+    DisposableEffect(Unit) {
+        val activity = context as? android.app.Activity
+        val previous = activity?.requestedOrientation ?: android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        activity?.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        onDispose { activity?.requestedOrientation = previous }
+    }
     val allGoals = done + goal
     // New goals (and every goal on a first run) start with the next free time that is still ahead.
     fun started(list: List<PracticeGoal>) = list.map { g -> if (!replay || state.practiceGoals.none { it.id == g.id }) g.copy(createdOn = Planner.freshStart(availability).toString()) else g }
