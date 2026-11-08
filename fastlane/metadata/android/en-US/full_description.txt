@@ -1,0 +1,9 @@
+Cadence is a practice tracker for music, studying, presentations and new skills.
+
+Create separate goals for an ongoing routine or a deadline. Choose a weekly target and practice days, or fine-tune daily time windows and targets. Track sessions with a persistent timer, pause and resume, or log practice afterwards.
+
+Local reminders adapt to progress, recent practice and your availability. An ongoing timer notification provides pause and finish actions. A home-screen widget, optional completion chime, haptics, session notes and CSV export help you keep going.
+
+German and English. Light, dark and device-colour themes. No account, ads or remote backend. Android system backup may include app data when enabled.
+
+Reminder timing and Live Update promotion depend on Android and your device.

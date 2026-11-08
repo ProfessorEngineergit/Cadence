@@ -1,0 +1,1 @@
+First Android version with multiple goals, weekly planning, adaptive local reminders, a live timer, widget, German/English interface and CSV export.

@@ -8,17 +8,14 @@
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject var manager: PracticeManager
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
+        DashboardView(manager: manager)
     }
 }
 
 #Preview {
     ContentView()
+        .environmentObject(PracticeManager())
 }

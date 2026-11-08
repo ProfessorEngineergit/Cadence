@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.Cadence" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">#FBF8F3</item>
+        <item name="android:colorAccent">#A63B29</item>
+    </style>
+</resources>

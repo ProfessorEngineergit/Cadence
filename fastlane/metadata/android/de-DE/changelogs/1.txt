@@ -1,0 +1,1 @@
+Erste Android-Version mit mehreren Zielen, Wochenplanung, adaptiven lokalen Erinnerungen, Live-Timer, Widget, Deutsch/Englisch und CSV-Export.

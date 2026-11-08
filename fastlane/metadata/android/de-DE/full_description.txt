@@ -1,0 +1,9 @@
+Cadence ist ein Übezeit-Tracker für Instrumente, Lernen, Referate und neue Fähigkeiten.
+
+Lege getrennte Ziele als laufende Routine oder mit Zieltermin an. Wähle dein Wochenziel und deine Übetage oder passe tägliche Zeitfenster und Ziele genau an. Miss Sessions mit einem dauerhaft gespeicherten Timer, pausiere oder trage Übezeit nach.
+
+Lokale Erinnerungen passen sich Fortschritt, letzten Sessions und deiner freien Zeit an. Die laufende Timer-Benachrichtigung bietet Pause und Beenden. Widget, optionaler Abschlusston, Haptik, Notizen und CSV-Export helfen beim Dranbleiben.
+
+Deutsch und Englisch. Helle, dunkle und Gerätefarben. Kein Konto, keine Werbung und kein eigener Cloud-Dienst. Androids aktivierte Systemsicherung kann App-Daten sichern.
+
+Erinnerungszeiten und Live-Update-Hervorhebung hängen von Android und deinem Gerät ab.

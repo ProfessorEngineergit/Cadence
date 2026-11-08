@@ -1,0 +1,33 @@
+Cadence — 25 zusätzliche berücksichtigte Punkte
+Stand: 8. November 2026
+
+1. Nur eine laufende Session gleichzeitig, auch beim Wechsel zwischen mehreren Zielen.
+2. Pausen zählen nicht zur Übezeit; der pausierte Zustand wird dauerhaft gespeichert.
+3. Zeitmessung über Zeitstempel: App-Schließen beendet die Session nicht. Die Anzeige wird beim Wiederöffnen wiederhergestellt.
+4. Doppelte „Beenden“-Aktionen erzeugen keinen zweiten Eintrag.
+5. Ein Start aus einer Benachrichtigung wird nur einmal verarbeitet. Eine spätere Neuerstellung der Activity startet keinen neuen Timer.
+6. Benachrichtigungen und Widget öffnen das richtige Übeziel. Sessions verschiedener Ziele bleiben getrennt.
+7. Minuten und Sekunden bleiben beim Bearbeiten genau erhalten. Kurze Sessions gehen nicht durch Rundung verloren.
+8. Wochen beginnen montags. Lokale Datumsgrenzen und die Zeitumstellung sind in den Berechnungen berücksichtigt.
+9. Sekunden werden zuerst summiert und erst danach in Minuten umgerechnet.
+10. Bestehende Android-Daten erhalten sinnvolle Standardwerte für neue Felder. Ein Ladefehler überschreibt keine vorhandenen Daten.
+11. Ungültige Dauer und zukünftige manuelle Einträge werden abgefangen; Löschungen benötigen eine bewusste Bestätigung in der App.
+12. Ein Gesamtwochenziel wird auf ausgewählte Tage verteilt, ohne deren verfügbare Zeit zu überschreiten.
+13. Die gemeinsame Verfügbarkeit gilt für alle Ziele. Wenn die Summe der Ziele einen Tag überfüllt, wird das sichtbar gemeldet.
+14. Ziele mit Termin haben einen eigenen Gesamtfortschritt. Der Plan zeigt, wenn bis zum Termin zu wenig Übezeit eingeplant ist.
+15. Erinnerungen passen den Bedarf an den verbleibenden Zeitraum an. Erreichte oder abgelaufene Terminziele werden nicht weiter angemahnt.
+16. Nach einer Übesession herrscht mindestens drei Stunden Ruhe — auch wenn die Übezeit zu einem anderen Ziel gehört.
+17. Zusätzliches Üben zählt für den weiteren Wochenplan mit. Die Uhrzeit kann aus mindestens drei echten Timer-Sessions gelernt werden; manuelle Einträge verfälschen das nicht.
+18. Ein gemeinsames Tageslimit und mindestens drei Stunden Abstand verhindern, dass mehrere Ziele gleichzeitig mit Erinnerungen drängeln.
+19. Nur innerhalb der Zeitfenster; freie Tage werden respektiert. „30 Minuten später“ und „Heute Pause“ wirken auch im Hintergrund.
+20. Benachrichtigungen erfordern Androids Freigabe. Die App enthält Testnachrichten und einen Zugang zu den Systemeinstellungen.
+21. Der laufende Timer hat eine eigene stille Benachrichtigung mit Chronometer sowie Pause/Fortsetzen/Beenden. Android 16 wird um Live-Update-Hervorhebung gebeten; Android/Oppo entscheidet darüber. Eine normale laufende Benachrichtigung bleibt der Rückfall.
+22. Der Abschlusston ist abschaltbar und respektiert Lautlos und „Nicht stören“. Das Vorschau-Steuerelement erklärt, wenn das Gerät stumm ist.
+23. Haptik lässt sich abschalten. Slider, Tabs und Schaltflächen haben gezielte Rückmeldungen. Vertikale Popup-Gesten und horizontale Zeitfenster-Gesten konkurrieren nicht.
+24. Deutsch und Englisch, Androids App-Sprache sowie helle, dunkle und Gerätefarben sind vorgesehen. Die getestete Oppo-Darstellung nutzt 360 dp Breite; der Timer berührt den Wellenring nicht und der Inhalt läuft hinter der schwebenden Tab-Bar weiter.
+25. Kein Konto und kein eigener Cloud-Dienst. CSV enthält exakte Dauer, Notizen und Zielnamen; Anführungszeichen und Zeilenumbrüche werden maskiert, Tabellenformeln entschärft. Androids aktivierte Systemsicherung kann App-Daten sichern.
+
+Prüfung
+Die Logiktests prüfen Zeit-/Wochenberechnungen, Timer, Verteilung, CSV und Erinnerungsentscheidungen.
+Die getrennte QA-App prüft auf dem Oppo die Kernabläufe, Eingaben, Popup-Gesten, mehrsprachige Einführung, Zieltrennung und Benachrichtigungsaktionen. Die tatsächliche Cadence-App wird dabei nicht zurückgesetzt.
+Systemgrenzen: Android/Oppo kann Hintergrundarbeit verzögern. Ein ausdrücklich erzwungener App-Stopp unterbindet Hintergrundarbeit bis zum nächsten Öffnen. Live-Update-Hervorhebung kann vom Gerät abgelehnt werden. Der Timer selbst läuft als gespeicherte Zeitmessung weiter; er ist kein minutengenauer Wecker.
