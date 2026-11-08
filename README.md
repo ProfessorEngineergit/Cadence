@@ -31,5 +31,3 @@ The app supports Android 10 and newer and targets Android 16. Release builds are
 - `android/`: native Android app and tests.
 - `Übezeit-Tracker/` and `Übezeit-Tracker.xcodeproj/`: preserved original iOS project.
 - `fastlane/metadata/android/`: English and German store descriptions and screenshots.
-
-The floating navigation follows Downlink's layout, with Cadence's own palette. Screen content continues behind the navigation, and settings live in the bottom bar.
