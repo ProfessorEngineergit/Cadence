@@ -41,6 +41,8 @@ object IntroMotion { @Volatile var forceStatic = false }
 
 /** One round object on the floor of the screen. */
 private class Body(val kind: Kind, val r: Float, var x: Float, var y: Float, val tint: Int) {
+    /** The clock is drawn larger than it collides, so small objects can rest on its rim. */
+    val drawn get() = if (kind == Kind.CLOCK) r * 1.45f else r
     var vx = 0f
     var vy = 0f
     var angle = 0f
@@ -65,7 +67,7 @@ private class World(width: Float, height: Float, var top: Float) {
     init {
         // Large enough to rise above the glass, few enough to settle into a stable pile.
         // The clock goes in last so it rests on top of the pile at first.
-        val specs = listOf(Kind.BALL to 0.16f, Kind.CHECK to 0.14f, Kind.BALL to 0.11f, Kind.NOTE to 0.16f, Kind.CALENDAR to 0.2f, Kind.CLOCK to 0.46f)
+        val specs = listOf(Kind.BALL to 0.16f, Kind.CHECK to 0.14f, Kind.BALL to 0.11f, Kind.NOTE to 0.16f, Kind.CALENDAR to 0.2f, Kind.CLOCK to 0.45f)
         // Lay them out just above the floor, left to right, so they drop a little and settle.
         var cx = 0f
         var rowBottom = height
@@ -84,7 +86,8 @@ private class World(width: Float, height: Float, var top: Float) {
     var grabbed: Body? = null
     var target = Offset.Zero
 
-    fun pick(p: Offset): Body? = bodies.lastOrNull { hypot(it.x - p.x, it.y - p.y) <= it.r * 1.05f }
+    fun pick(p: Offset): Body? = bodies.filter { it.kind != Kind.CLOCK }.lastOrNull { hypot(it.x - p.x, it.y - p.y) <= it.r * 1.05f }
+        ?: bodies.firstOrNull { it.kind == Kind.CLOCK && hypot(it.x - p.x, it.y - p.y) <= it.drawn }
 
     fun grab(b: Body, p: Offset) { grabbed = b; target = p; bodies.remove(b); bodies.add(b) }
 
@@ -113,7 +116,7 @@ private class World(width: Float, height: Float, var top: Float) {
             }
             for (b in bodies) {
                 b.vx += gx * h2; b.vy += gy * h2
-                val damping = 1f - 0.35f * h2
+                val damping = 1f - 0.12f * h2
                 b.vx *= damping; b.vy *= damping
                 b.x += b.vx * h2; b.y += b.vy * h2
             }
@@ -190,9 +193,11 @@ private fun rememberGravity(enabled: Boolean): State<Offset> {
             var smooth = Offset(0f, SensorManager.GRAVITY_EARTH)
             override fun onSensorChanged(event: SensorEvent) {
                 val inPlane = Offset(-event.values[0], event.values[1])
-                // Lying flat leaves almost no gravity in the screen plane; then the floor stays "down".
-                val keep = (6f - inPlane.getDistance()).coerceAtLeast(0f)
-                val target = Offset(inPlane.x, inPlane.y + keep)
+                // Only the direction comes from the tilt; objects always fall with full weight.
+                // Lying flat leaves little to go on, so "down" takes over smoothly.
+                val keep = (4f - inPlane.getDistance()).coerceAtLeast(0f)
+                val dir = Offset(inPlane.x, inPlane.y + keep)
+                val target = dir / dir.getDistance().coerceAtLeast(0.001f) * SensorManager.GRAVITY_EARTH
                 // Low-pass so sensor noise doesn't shake the pile.
                 smooth += (target - smooth) * 0.15f
                 gravity.value = smooth
@@ -233,7 +238,7 @@ fun IntroScene(step: Int, fill: Float, modifier: Modifier = Modifier, ceiling: a
     LaunchedEffect(world, motion, wake) {
         val w = world ?: return@LaunchedEffect
         if (!motion) {
-            repeat(900) { w.step(1f / 60f, 0f, w.h * 1.6f) }
+            repeat(900) { w.step(1f / 60f, 0f, w.h * 2.0f) }
             frame++
             return@LaunchedEffect
         }
@@ -246,7 +251,7 @@ fun IntroScene(step: Int, fill: Float, modifier: Modifier = Modifier, ceiling: a
                 last = now
                 seconds += dt
                 // At 1 g things fall about 1.6 screen heights per second squared: heavy, but not sluggish.
-                val scale = w.h * 1.6f / SensorManager.GRAVITY_EARTH
+                val scale = w.h * 2.0f / SensorManager.GRAVITY_EARTH
                 w.step(dt, gravity.x * scale, gravity.y * scale)
                 if (haptics && w.impact > w.h * 0.9f && now - lastBuzz > 140_000_000L) {
                     haptic.performHapticFeedback(HapticFeedbackType.SegmentFrequentTick); lastBuzz = now
@@ -307,11 +312,13 @@ fun IntroScene(step: Int, fill: Float, modifier: Modifier = Modifier, ceiling: a
             @Suppress("UNUSED_EXPRESSION") frame // redraw on every physics frame
             val w = world ?: return@Canvas
             drawRect(Brush.verticalGradient(listOf(Color.Transparent, lavender.copy(alpha = if (dark) 0.08f else 0.14f)), startY = size.height * 0.4f))
-            for (b in w.bodies) floorShadow(Offset(b.x, b.y), b.r, shadowAlpha)
-            for (b in w.bodies) {
+            // The big clock lies underneath unless it's being held; held objects are drawn on top.
+            val order = w.bodies.sortedBy { if (it === w.grabbed) 2 else if (it.kind == Kind.CLOCK) 0 else 1 }
+            for (b in order) floorShadow(Offset(b.x, b.y), b.drawn, shadowAlpha)
+            for (b in order) {
                 val c = Offset(b.x, b.y)
                 when (b.kind) {
-                    Kind.CLOCK -> stopwatch(c, b.r, cream, lavender, coral, arc, b.angle + seconds * 6f, b.angle)
+                    Kind.CLOCK -> stopwatch(c, b.drawn, cream, lavender, coral, arc, b.angle + seconds * 6f, b.angle)
                     Kind.CALENDAR -> calendarToken(c, b.r, cream, coral, lavender, b.angle)
                     Kind.NOTE -> symbolBall(c, b.r, lavender, b.angle) { cc, rr -> note(cc, rr, cream) }
                     Kind.CHECK -> symbolBall(c, b.r, mint, b.angle) { cc, rr -> check(cc, rr, cream) }
